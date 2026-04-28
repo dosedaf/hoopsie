@@ -12,25 +12,8 @@ class GameMember {
     required this.userId,
     this.status = MemberStatus.pending,
   });
-}
 
-List<GameMember> mockMembers = [
-  GameMember(
-    id: "m1",
-    gameId: "g1",
-    userId: "u2",
-    status: MemberStatus.pending,
-  ),
-  GameMember(
-    id: "m2",
-    gameId: "g1",
-    userId: "u3",
-    status: MemberStatus.approved,
-  ),
-  GameMember(
-    id: "m3",
-    gameId: "g2",
-    userId: "u1",
-    status: MemberStatus.approved,
-  ),
-];
+  Map<String, dynamic> toMap() {
+    return {'id': id, 'gameId': gameId, 'userId': userId, 'status': status};
+  }
+}

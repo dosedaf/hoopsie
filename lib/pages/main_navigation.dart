@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
-import 'my_sports_screen.dart';
-import 'minigame_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -13,7 +11,10 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [const DashboardScreen(), const MySportsScreen(), const MinigameScreen()];
+  final List<Widget> _pages = [
+    const DashboardScreen(),
+    const Center(child: Text("Coming Soon")),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -24,16 +25,10 @@ class _MainNavigationState extends State<MainNavigation> {
         onTap: (index) => setState(() => _currentIndex = index),
         selectedItemColor: const Color(0xFF2A52BE),
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sports_basketball),
-            label: 'My Games',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.videogame_asset),
-            label: 'Minigame',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

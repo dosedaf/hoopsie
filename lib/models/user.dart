@@ -1,9 +1,19 @@
-enum Position { PG, SG, SF, PF, C }
+enum Position {
+  pg("Point Guard"),
+  sg("Shooting Guard"),
+  sf("Small Forward"),
+  pf("Power Forward"),
+  c("Center");
+
+  final String displayName;
+
+  const Position(this.displayName);
+}
 
 class User {
   final String id;
   final String username;
-  final String password; // hash later
+  final String password;
   final Position position;
   final int skillLevel;
 
@@ -14,4 +24,14 @@ class User {
     required this.position,
     required this.skillLevel,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'username': username,
+      'password': password,
+      'position': position,
+      'skill_level': skillLevel,
+    };
+  }
 }

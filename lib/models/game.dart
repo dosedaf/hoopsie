@@ -1,6 +1,14 @@
 enum GameStatus { open, full, ongoing, finished, cancelled }
 
-enum GameType { oneOnOne, threeOnThree, fiveOnFive }
+enum GameType {
+  oneOnOne("1v1"),
+  threeOnThree("3v3"),
+  fiveOnFive("5v5");
+
+  final String displayName;
+
+  const GameType(this.displayName);
+}
 
 class Game {
   final String id;
@@ -10,7 +18,6 @@ class Game {
   final DateTime startTime;
   final DateTime endTime;
   final GameType type;
-  GameStatus status;
 
   Game({
     required this.id,
@@ -20,40 +27,29 @@ class Game {
     required this.startTime,
     required this.endTime,
     required this.type,
-    this.status = GameStatus.open,
   });
+
+  factory Game.fromMap(Map<String, dynamic> map) {
+    return Game(
+      id: map['id'].toString(),
+      name: map['name'],
+      hostId: map['host_id'],
+      courtId: map['court_id'],
+      startTime: DateTime.parse(map['start_time']),
+      endTime: DateTime.parse(map['end_time']),
+      type: GameType.values.firstWhere((e) => e.name == map['type']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'hostId': hostId,
+      'courtId': courtId,
+      'startTime': startTime,
+      'endTime': endTime,
+      'type': type,
+    };
+  }
 }
-
-List<Game> myGames = [];
-
-List<Game> mockGames = [
-  Game(
-    id: "g1",
-    name: "bantai2",
-    hostId: "u1",
-    courtId: "c1",
-    startTime: DateTime.now().add(Duration(hours: 2)),
-    endTime: DateTime.now().add(Duration(hours: 3)),
-    type: GameType.fiveOnFive,
-  ),
-  Game(
-    id: "g2",
-    name: "kyrie camp",
-    hostId: "u2",
-    courtId: "c2",
-    startTime: DateTime.now().add(Duration(days: 1)),
-    endTime: DateTime.now().add(Duration(days: 1, hours: 1)),
-    type: GameType.threeOnThree,
-    status: GameStatus.full,
-  ),
-  Game(
-    id: "g3",
-    name: "lawan bigmo menang dpt 50k",
-    hostId: "u3",
-    courtId: "c1",
-    startTime: DateTime.now().subtract(Duration(hours: 1)),
-    endTime: DateTime.now().add(Duration(hours: 1)),
-    type: GameType.oneOnOne,
-    status: GameStatus.ongoing,
-  ),
-];
