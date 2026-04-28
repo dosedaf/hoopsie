@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ta_tes/pages/currency_convert_screen.dart';
+import 'package:ta_tes/pages/time_convert_screen.dart';
+import 'package:ta_tes/pages/minigame_screen.dart';
 import 'dashboard_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -11,10 +14,8 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const DashboardScreen(),
-    const Center(child: Text("Coming Soon")),
-  ];
+
+  final List<Widget> _pages = [const DashboardScreen(),const MinigameScreen(), const CurrencyConvertScreen(), const TimeConvertScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,18 @@ class _MainNavigationState extends State<MainNavigation> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.videogame_asset),
+            label: 'Minigame',
+          ),
+                    BottomNavigationBarItem(
+            icon: Icon(Icons.videogame_asset),
+            label: 'Currency',
+          ),
+                    BottomNavigationBarItem(
+            icon: Icon(Icons.videogame_asset),
+            label: 'Time',
+          ),
         ],
       ),
     );
