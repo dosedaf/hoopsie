@@ -12,6 +12,7 @@ enum Position {
 
 class User {
   final String id;
+  final String name;
   final String username;
   final String password;
   final Position position;
@@ -19,6 +20,7 @@ class User {
 
   User({
     required this.id,
+    required this.name,
     required this.username,
     required this.password,
     required this.position,
@@ -28,6 +30,7 @@ class User {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'name': name,
       'username': username,
       'password': password,
       'position': position,

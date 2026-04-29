@@ -3,6 +3,7 @@ import 'package:ta_tes/pages/currency_convert_screen.dart';
 import 'package:ta_tes/pages/time_convert_screen.dart';
 import 'package:ta_tes/pages/minigame_screen.dart';
 import 'dashboard_screen.dart';
+import 'manage_game_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -14,8 +15,13 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-
-  final List<Widget> _pages = [const DashboardScreen(),const MinigameScreen(), const CurrencyConvertScreen(), const TimeConvertScreen()];
+  final List<Widget> _pages = [
+    const DashboardScreen(),
+    const ManageGamesScreen(),
+    const MinigameScreen(),
+    const CurrencyConvertScreen(),
+    const TimeConvertScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -24,22 +30,23 @@ class _MainNavigationState extends State<MainNavigation> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: const Color(0xFF2A52BE),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(
             icon: Icon(Icons.videogame_asset),
             label: 'Minigame',
           ),
-                    BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.videogame_asset),
             label: 'Currency',
           ),
-                    BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.videogame_asset),
             label: 'Time',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sports_basketball),
+            label: 'My Games',
           ),
         ],
       ),

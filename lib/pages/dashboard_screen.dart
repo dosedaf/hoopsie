@@ -25,7 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _refreshGames() {
     setState(() {
-      _gamesFuture = _db.getAvailableGames();
+      _gamesFuture = _db.getDiscoverableGames();
     });
   }
 
@@ -54,13 +54,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  }
+
                   final games = snapshot.data ?? [];
+
+                  if (games.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text(
+                          "No games available nearby right now. Why not create one?",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    );
+                  }
+
                   return Column(
                     children: games
                         .map(
                           (game) => GameCard(
                             game: game,
-                            isMyGame: game.hostId == currentUserId,
+                            isMyGame: false,
+                            onJoin: () async {
+                              await _db.joinGame(game.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Request to join sent!"),
+                                ),
+                              );
+                              _refreshGames(); // Refresh to see updated counts or status
+                            },
                           ),
                         )
                         .toList(),

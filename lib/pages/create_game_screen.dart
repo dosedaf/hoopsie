@@ -70,6 +70,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
       name: _nameController.text,
       hostId: _db.currentUserId,
       courtId: selectedCourt!.id,
+      courtName: selectedCourt!.name,
       startTime: selectedStartTime!,
       endTime: selectedEndTime!,
       type: selectedType,
