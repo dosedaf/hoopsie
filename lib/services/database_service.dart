@@ -22,13 +22,15 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    final String dbDirectory = join(Directory.current.path, 'database');
+    final String dbDirectory = await getDatabasesPath();
     final String path = join(dbDirectory, 'hoopsie.db');
+    // final String dbDirectory = join(Directory.current.path, 'database');
+    // final String path = join(dbDirectory, 'hoopsie.db');
 
-    final directory = Directory(dbDirectory);
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
+    // final directory = Directory(dbDirectory);
+    // if (!await directory.exists()) {
+    //   await directory.create(recursive: true);
+    // }
 
     log("DEBUG: Database is located at: $path");
     return await openDatabase(
@@ -80,6 +82,52 @@ class DatabaseService {
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   )
 ''');
+        await db.execute('''CREATE TABLE quiz_questions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          question TEXT NOT NULL,
+          options TEXT NOT NULL,
+          correct_index INTEGER NOT NULL,
+          image_url TEXT,
+          created_at TEXT NOT NULL
+        )''');
+
+        await db.execute('''CREATE TABLE quiz_answers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          question_id INTEGER NOT NULL,
+          answered_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (question_id) REFERENCES quiz_questions(id),
+          UNIQUE(user_id, question_id)
+        )''');
+
+        final now = DateTime.now().toIso8601String();
+        final quizData = [
+          ['Berapa poin nilai tembakan three-point?', '["1 poin","2 poin","3 poin","4 poin"]', 2, null],
+          ['Berapa durasi satu quarter di NBA?', '["10 menit","12 menit","15 menit","20 menit"]', 1, null],
+          ['Apa nama pelanggaran berjalan tanpa dribble?', '["Foul","Traveling","Double Dribble","Goaltending"]', 1, null],
+          ['Berapa tinggi standar ring basket dari lantai?', '["2,85 m","3,05 m","3,25 m","3,50 m"]', 1, null],
+          ['Siapa yang mencetak 100 poin dalam satu game NBA?', '["Michael Jordan","Kobe Bryant","Wilt Chamberlain","LeBron James"]', 2, null],
+          ['Berapa shot clock di NBA (detik)?', '["14","18","24","30"]', 2, null],
+          ['Posisi yang bertugas mengatur serangan disebut?', '["Small Forward","Power Forward","Point Guard","Center"]', 2, null],
+          ['Tim mana yang paling banyak juara NBA sepanjang sejarah?', '["LA Lakers","Boston Celtics","Chicago Bulls","Golden State Warriors"]', 1, null],
+          ['"Triple-double" berarti dua digit di tiga statistik apa?', '["Poin, rebound, assist","Poin, steal, block","Rebound, assist, foul","Poin, foul, turnover"]', 0, null],
+          ['Berapa pemain satu tim yang boleh di lapangan sekaligus?', '["4","5","6","7"]', 1, null],
+          ['Siapa pemain ini?', '["Kevin Durant","LeBron James","Stephen Curry","Giannis"]', 1, 'assets/images/quiz/lebron.jpg'],
+          ['Siapa pemain ini?', '["Klay Thompson","Chris Paul","Stephen Curry","Damian Lillard"]', 2, 'assets/images/quiz/curry.webp'],
+          ['Siapa pemain ini?', '["Kevin Durant","Kawhi Leonard","Paul George","Jimmy Butler"]', 0, 'assets/images/quiz/kd.avif'],
+
+        ];
+
+        for (final q in quizData) {
+          await db.insert('quiz_questions', {
+            'question': q[0],
+            'options': q[1],
+            'correct_index': q[2],
+            'image_url': q[3],
+            'created_at': now,
+          });
+        }
       },
     );
   }
@@ -290,6 +338,33 @@ class DatabaseService {
       {'status': status},
       where: 'id = ?',
       whereArgs: [recordId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUnansweredQuestions(String userId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT * FROM quiz_questions
+      WHERE id NOT IN (
+        SELECT question_id FROM quiz_answers WHERE user_id = ?
+      )
+      ORDER BY RANDOM()
+    ''', [userId]);
+  }
+
+  Future<void> markQuizAnswered({
+    required String userId,
+    required int questionId,
+  }) async {
+    final db = await database;
+    await db.insert(
+      'quiz_answers',
+      {
+        'user_id': userId,
+        'question_id': questionId,
+        'answered_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 }

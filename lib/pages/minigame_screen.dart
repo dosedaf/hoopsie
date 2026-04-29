@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/quiz.dart';
+import '../services/quiz_service.dart';
+import '../services/database_service.dart';
 
 class MinigameScreen extends StatefulWidget {
   const MinigameScreen({super.key});
@@ -9,12 +11,32 @@ class MinigameScreen extends StatefulWidget {
 }
 
 class _MinigameScreenState extends State<MinigameScreen> {
+  final _quizService = QuizService();
+  final _userId = DatabaseService().currentUserId;
+
+  List<QuizQuestion> _questions = [];
   int _current = 0;
   int? _selected;
   bool _answered = false;
   bool _allDone = false;
+  bool _loading = true;
 
-  QuizQuestion get q => quizQuestions[_current];
+  QuizQuestion get q => _questions[_current];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuestions();
+  }
+
+  Future<void> _loadQuestions() async {
+    final questions = await _quizService.getUnansweredQuestions(_userId);
+    setState(() {
+      _questions = questions;
+      _allDone = questions.isEmpty;
+      _loading = false;
+    });
+  }
 
   void _answer(int index) {
     if (_answered) return;
@@ -22,10 +44,11 @@ class _MinigameScreenState extends State<MinigameScreen> {
       _selected = index;
       _answered = true;
     });
+    _quizService.markAnswered(userId: _userId, questionId: q.id);
   }
 
   void _next() {
-    if (_current + 1 >= quizQuestions.length) {
+    if (_current + 1 >= _questions.length) {
       setState(() => _allDone = true);
       return;
     }
@@ -35,8 +58,6 @@ class _MinigameScreenState extends State<MinigameScreen> {
       _answered = false;
     });
   }
-
-  // ── Option styling ─────────────────────────────────────────────────────────
 
   Color _optionBg(int i) {
     if (!_answered) return Colors.white;
@@ -80,10 +101,14 @@ class _MinigameScreenState extends State<MinigameScreen> {
 
   static const _labels = ['A', 'B', 'C', 'D', 'E'];
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const SafeArea(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (_allDone) return _buildAllDoneScreen();
 
     return SafeArea(
@@ -122,8 +147,6 @@ class _MinigameScreenState extends State<MinigameScreen> {
     );
   }
 
-  // ── Sub-widgets ────────────────────────────────────────────────────────────
-
   Widget _buildQuestionCard() {
     return Container(
       decoration: BoxDecoration(
@@ -144,22 +167,24 @@ class _MinigameScreenState extends State<MinigameScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (q.imageUrl != null)
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                q.imageUrl!,
-                height: 180,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox(
-                  height: 180,
-                  child: Center(
-                    child: Icon(Icons.person, size: 60, color: Colors.white38),
-                  ),
-                ),
-              ),
+        if (q.imageUrl != null)
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: q.imageUrl!.startsWith('http')
+                  ? Image.network(
+                      q.imageUrl!,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                    )
+                  : Image.asset(
+                      q.imageUrl!,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                    ),
             ),
+          ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
