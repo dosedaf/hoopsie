@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/game.dart';
 import '../services/database_service.dart';
 import 'game_details_screen.dart';
-import '../widgets/game_card.dart';
+import '../widgets/manage_game_card.dart';
 
 class ManageGamesScreen extends StatefulWidget {
   const ManageGamesScreen({super.key});
@@ -14,49 +14,74 @@ class ManageGamesScreen extends StatefulWidget {
 class _ManageGamesScreenState extends State<ManageGamesScreen> {
   final DatabaseService _db = DatabaseService();
 
+  Future<void> _handleDelete(String gameId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Game?"),
+        content: const Text(
+          "This will permanently remove the game for everyone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _db.deleteGame(gameId);
+      setState(() {});
+    }
+  }
+
+  Future<void> _handleLeave(String gameId) async {
+    await _db.leaveGame(gameId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("You have left the game.")));
+    setState(() {});
+  }
+
+  void _navigateToDetails(Game game) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => GameDetailsScreen(game: game)),
+    ).then((_) => setState(() {}));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Manage My Games")),
       body: FutureBuilder<List<Game>>(
-        future: _db.getMyHostedGames(),
-
+        future: _db.getMyGamesAndJoined(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final myGames = snapshot.data ?? [];
-
-          if (myGames.isEmpty) {
-            return const Center(
-              child: Text("You haven't hosted any games yet."),
-            );
-          }
+          final games = snapshot.data ?? [];
 
           return ListView.builder(
-            itemCount: myGames.length,
+            itemCount: games.length,
             itemBuilder: (context, index) {
-              final game = myGames[index];
-              return GameCard(
+              final game = games[index];
+              final bool amIHost = game.hostId == _db.currentUserId;
+
+              return ManageGameCard(
                 game: game,
-                isMyGame: true,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GameDetailsScreen(game: game),
-                    ),
-                  ).then((_) => setState(() {}));
-                },
-                onDelete: () async {
-                  await _db.deleteGame(game.id);
-                  setState(() {});
-                },
+                isMyGame: amIHost,
+                onDelete: () => _handleDelete(game.id),
+                onLeave: () => _handleLeave(game.id),
+                onTap: () => _navigateToDetails(game),
               );
             },
           );

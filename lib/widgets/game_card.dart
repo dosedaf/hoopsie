@@ -8,6 +8,7 @@ class GameCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onJoin;
   final VoidCallback? onTap;
+  final VoidCallback? onLeave;
 
   const GameCard({
     super.key,
@@ -16,6 +17,7 @@ class GameCard extends StatelessWidget {
     this.onDelete,
     this.onJoin,
     this.onTap,
+    this.onLeave,
   });
 
   @override
@@ -195,5 +197,29 @@ class GameCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildParticipantActionButton() {
+    if (game.currentUserStatus != null) {
+      // If user has a status (pending or approved), show "Leave"
+      return OutlinedButton.icon(
+        onPressed: onLeave,
+        icon: const Icon(Icons.exit_to_app, size: 16, color: Colors.orange),
+        label: Text(
+          game.currentUserStatus == 'approved' ? "Leave" : "Cancel Request",
+          style: const TextStyle(color: Colors.orange),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.orange),
+        ),
+      );
+    } else {
+      // Standard Join button
+      return ElevatedButton(
+        onPressed: onJoin,
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+        child: const Text("Join Game"),
+      );
+    }
   }
 }
