@@ -30,24 +30,24 @@ class _MainNavigationState extends State<MainNavigation> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF2A52BE),
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sports_basketball),
+            label: 'My Games',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.videogame_asset),
             label: 'Minigame',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.videogame_asset),
+            icon: Icon(Icons.attach_money),
             label: 'Currency',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.videogame_asset),
-            label: 'Time',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sports_basketball),
-            label: 'My Games',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: 'Time'),
         ],
       ),
     );
