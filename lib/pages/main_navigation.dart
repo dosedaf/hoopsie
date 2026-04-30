@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ta_tes/pages/currency_convert_screen.dart';
-import 'package:ta_tes/pages/time_convert_screen.dart';
-import 'package:ta_tes/pages/minigame_screen.dart';
 import 'dashboard_screen.dart';
 import 'manage_game_screen.dart';
+import 'map_explore_screen.dart';
+import 'tools_hub_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,10 +16,9 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _pages = [
     const DashboardScreen(),
+    const MapExploreScreen(),
     const ManageGamesScreen(),
-    const MinigameScreen(),
-    const CurrencyConvertScreen(),
-    const TimeConvertScreen(),
+    const ToolsHubScreen(),
   ];
 
   @override
@@ -35,19 +33,12 @@ class _MainNavigationState extends State<MainNavigation> {
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
           BottomNavigationBarItem(
             icon: Icon(Icons.sports_basketball),
             label: 'My Games',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.videogame_asset),
-            label: 'Minigame',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.attach_money),
-            label: 'Currency',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: 'Time'),
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Tools'),
         ],
       ),
     );

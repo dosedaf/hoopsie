@@ -1,3 +1,5 @@
+import 'package:geodesy/geodesy.dart';
+
 enum GameStatus { open, full, ongoing, finished, cancelled }
 
 enum GameType {
@@ -17,11 +19,16 @@ class Game {
   final String? hostName;
   final String courtId;
   final String courtName;
+  final double courtLat;
+  final double courtLng;
+  final String? photoPath; // <--- ADD THIS
   final DateTime startTime;
   final DateTime endTime;
   final GameType type;
   GameStatus status;
   final String? currentUserStatus;
+
+  LatLng get location => LatLng(courtLat, courtLng);
 
   Game({
     required this.id,
@@ -30,6 +37,9 @@ class Game {
     this.hostName,
     required this.courtId,
     required this.courtName,
+    required this.courtLat,
+    required this.courtLng,
+    this.photoPath,
     required this.startTime,
     required this.endTime,
     required this.type,
@@ -40,11 +50,14 @@ class Game {
   factory Game.fromMap(Map<String, dynamic> map) {
     return Game(
       id: map['id'].toString(),
-      name: map['name'],
-      hostId: map['host_id'],
+      name: map['name'] ?? '',
+      hostId: map['host_id'] ?? '',
       hostName: map['host_name'],
-      courtId: map['court_id'],
-      courtName: map['court_name'],
+      courtId: map['court_id'] ?? '',
+      courtName: map['court_name'] ?? '',
+      courtLat: (map['lat'] as num?)?.toDouble() ?? 0.0,
+      courtLng: (map['lng'] as num?)?.toDouble() ?? 0.0,
+      photoPath: map['photo_path'],
       startTime: DateTime.parse(map['start_time']),
       endTime: DateTime.parse(map['end_time']),
       type: GameType.values.firstWhere((e) => e.name == map['type']),
@@ -52,13 +65,14 @@ class Game {
       currentUserStatus: map['current_user_status'],
     );
   }
-
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'hostId': hostId,
       'courtId': courtId,
+      'courtLat': courtLat,
+      'courtLng': courtLng,
       'courtName': courtName,
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),

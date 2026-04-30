@@ -1,10 +1,11 @@
-// lib/services/database_service.dart
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/game.dart';
 import '../models/court.dart';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:math' show asin, cos, sqrt;
+import 'package:geolocator/geolocator.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -45,12 +46,15 @@ class DatabaseService {
     skill_level INTEGER DEFAULT 1
 );
         ''');
-        await db.execute('''CREATE TABLE courts (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          lat REAL NOT NULL,
-          lng REAL NOT NULL
-        )''');
+        await db.execute('''
+        CREATE TABLE courts (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  lat REAL,
+  lng REAL,
+  photo_path TEXT 
+)
+        ''');
         await db.execute('''
         CREATE TABLE games (
     id TEXT PRIMARY KEY,
@@ -313,14 +317,15 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
       games.*, 
       users.name AS host_name, 
       courts.name AS court_name,
-      -- This checks if "u2" (you) has a record in game_members for this game
+      courts.lat, 
+      courts.lng, 
+      courts.photo_path, -- <--- ADD THIS LINE HERE
       (SELECT status FROM game_members 
        WHERE game_id = games.id AND user_id = ?) AS current_user_status
     FROM games 
     LEFT JOIN users ON games.host_id = users.id
     LEFT JOIN courts ON games.court_id = courts.id
     WHERE games.host_id != ? AND games.status = 'open'
-    ORDER BY games.start_time ASC
   ''',
       [currentUserId, currentUserId],
     );
@@ -449,13 +454,14 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
       games.*, 
       users.name AS host_name, 
       courts.name AS court_name,
+      courts.lat,        -- Added for consistency
+      courts.lng,        -- Added for consistency
+      courts.photo_path, -- <--- ADD THIS LINE HERE
       m.status AS current_user_status
     FROM games 
     LEFT JOIN users ON games.host_id = users.id
     LEFT JOIN courts ON games.court_id = courts.id
-    -- Link to members table to check if I joined
     LEFT JOIN game_members m ON m.game_id = games.id AND m.user_id = ?
-    -- The filter: Match if I am the host OR if I have a member record
     WHERE games.host_id = ? OR m.user_id = ?
     ORDER BY games.start_time ASC
   ''',
@@ -472,5 +478,52 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
       where: 'game_id = ? AND user_id = ?',
       whereArgs: [gameId, currentUserId],
     );
+  }
+
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    var p = 0.017453292519943295;
+    var c = cos;
+    var a =
+        0.5 -
+        c((lat2 - lat1) * p) / 2 +
+        c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
+    return 12742 * asin(sqrt(a)); // returns distance in km
+  }
+
+  Future<List<Game>> getNearbyGames(double radiusKm) async {
+    Position position = await Geolocator.getCurrentPosition();
+
+    List<Game> allGames = await getDiscoverableGames();
+
+    return allGames.where((game) {
+      double dist = _calculateDistance(
+        position.latitude,
+        position.longitude,
+        game.courtLat,
+        game.courtLng,
+      );
+      return dist <= radiusKm;
+    }).toList();
+  }
+
+  Future<void> saveCourt(
+    String name,
+    double lat,
+    double lng,
+    String? photoPath,
+  ) async {
+    final db = await database;
+    await db.insert('courts', {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'name': name,
+      'lat': lat,
+      'lng': lng,
+      'photo_path': photoPath,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }
