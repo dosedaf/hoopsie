@@ -1,11 +1,13 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/game.dart';
+import '../models/user.dart';
 import '../models/court.dart';
+import '../services/auth_manager.dart';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:math' show asin, cos, sqrt;
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -14,7 +16,7 @@ class DatabaseService {
   factory DatabaseService() => _instance;
   DatabaseService._internal();
 
-  String get currentUserId => "u2";
+  String? get currentUserId => AuthManager().currentUserId;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -37,24 +39,32 @@ class DatabaseService {
       path,
       version: 1,
       onCreate: (db, version) async {
-        await db.execute('''CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL,
-    position TEXT NOT NULL, -- e.g., 'pg', 'sg'
-    skill_level INTEGER DEFAULT 1
-);
-        ''');
         await db.execute('''
-        CREATE TABLE courts (
-  id TEXT PRIMARY KEY,
-  name TEXT,
-  lat REAL,
-  lng REAL,
-  photo_path TEXT 
-)
-        ''');
+  CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    username TEXT,
+    password TEXT,
+    position TEXT,
+    skill_level INTEGER,
+    photo_path TEXT
+  )
+''');
+        await db.execute('''
+  CREATE TABLE courts (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    lat REAL,
+    lng REAL,
+    photo_path TEXT,
+    opening_time TEXT,
+    closing_time TEXT,
+    type TEXT,
+    size TEXT,
+    court_count INTEGER,
+    surface TEXT
+  )
+''');
         await db.execute('''
         CREATE TABLE games (
     id TEXT PRIMARY KEY,
@@ -207,15 +217,46 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
     );
   }
 
+  Future<void> registerUser(User user) async {
+    final db = await database;
+    await db.insert(
+      'users',
+      user.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.fail,
+    );
+  }
+
+  Future<User?> loginUser(String username, String password) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<List<Court>> getAllCourts() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('courts');
+
     return List.generate(maps.length, (i) {
       return Court(
-        id: maps[i]['id'],
-        name: maps[i]['name'],
-        lat: maps[i]['lat'],
-        lng: maps[i]['lng'],
+        id: maps[i]['id'].toString(),
+        name: maps[i]['name'] ?? 'Unnamed Court',
+        lat: (maps[i]['lat'] as num).toDouble(),
+        lng: (maps[i]['lng'] as num).toDouble(),
+        photoPath: maps[i]['photo_path'],
+        openingTime: maps[i]['opening_time'] ?? "08:00",
+        closingTime: maps[i]['closing_time'] ?? "22:00",
+        type: maps[i]['type'] ?? "Outdoor",
+        size: maps[i]['size'] ?? "Full",
+        courtCount: maps[i]['court_count'] ?? 1,
+        surface: maps[i]['surface'] ?? "Concrete",
       );
     });
   }
@@ -496,7 +537,7 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
   }
 
   Future<List<Game>> getNearbyGames(double radiusKm) async {
-    Position position = await Geolocator.getCurrentPosition();
+    geo.Position position = await geo.Geolocator.getCurrentPosition();
 
     List<Game> allGames = await getDiscoverableGames();
 
@@ -525,5 +566,45 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
       'lng': lng,
       'photo_path': photoPath,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> saveCourtExtended(
+    String name,
+    double lat,
+    double lng,
+    String openingTime,
+    String closingTime,
+    String type,
+    String size,
+    int courtCount,
+    String surface,
+    String? photoPath,
+  ) async {
+    final db = await database;
+    await db.insert('courts', {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'name': name,
+      'lat': lat,
+      'lng': lng,
+      'photo_path': photoPath,
+      'opening_time': openingTime,
+      'closing_time': closingTime,
+      'type': type,
+      'size': size,
+      'court_count': courtCount,
+      'surface': surface,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<User?> getCurrentUser() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [currentUserId],
+    );
+
+    if (maps.isEmpty) return null;
+    return User.fromMap(maps.first);
   }
 }

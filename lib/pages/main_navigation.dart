@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'manage_game_screen.dart';
 import 'map_explore_screen.dart';
+import 'profile_screen.dart';
 import 'tools_hub_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -19,6 +20,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const MapExploreScreen(),
     const ManageGamesScreen(),
     const ToolsHubScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -39,6 +41,7 @@ class _MainNavigationState extends State<MainNavigation> {
             label: 'My Games',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Tools'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

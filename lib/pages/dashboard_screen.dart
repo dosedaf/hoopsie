@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../models/game.dart';
+import '../models/user.dart';
 import '../widgets/game_card.dart';
-import 'create_game_screen.dart';
+import 'create_game_pop.dart';
+import 'profile_screen.dart';
 import '../services/database_service.dart';
+import '../services/auth_manager.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,10 +16,10 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final DatabaseService _db = DatabaseService(); // Define the service
+  final DatabaseService _db = DatabaseService();
   late Future<List<Game>> _gamesFuture;
 
-  String get currentUserId => _db.currentUserId;
+  String? get currentUserId => AuthManager().currentUserId;
 
   @override
   void initState() {
@@ -33,76 +37,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async => _refreshGames(),
-          child: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildCreateGameShortcut(),
-              const SizedBox(height: 32),
-              const Text(
-                'Available Games',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+        child: FutureBuilder<User?>(
+          future: _db.getCurrentUser(),
+          builder: (context, userSnapshot) {
+            final currentUser = userSnapshot.data;
 
-              FutureBuilder<List<Game>>(
-                future: _gamesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+            return RefreshIndicator(
+              onRefresh: () async => _refreshGames(),
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  _buildHeader(currentUser),
 
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}"));
-                  }
+                  const SizedBox(height: 24),
+                  _buildCreateGameShortcut(),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Available Games',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
 
-                  final games = snapshot.data ?? [];
+                  FutureBuilder<List<Game>>(
+                    future: _gamesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  if (games.isEmpty) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Text(
-                          "No games available nearby right now. Why not create one?",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    );
-                  }
+                      if (snapshot.hasError) {
+                        return Center(child: Text("Error: ${snapshot.error}"));
+                      }
 
-                  return Column(
-                    children: games
-                        .map(
-                          (game) => GameCard(
-                            game: game,
-                            isMyGame: false,
-                            onJoin: () async {
-                              await _db.joinGame(game.id);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Request to join sent!"),
-                                ),
-                              );
-                              _refreshGames(); // Refresh to see updated counts or status
-                            },
+                      final games = snapshot.data ?? [];
+
+                      if (games.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Text(
+                              "No games available nearby right now. Why not create one?",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey),
+                            ),
                           ),
-                        )
-                        .toList(),
-                  );
-                },
+                        );
+                      }
+
+                      return Column(
+                        children: games
+                            .map(
+                              (game) => GameCard(
+                                game: game,
+                                isMyGame: false,
+                                onJoin: () async {
+                                  await _db.joinGame(game.id);
+                                  if (!mounted) return; // Fix for async gap
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Request to join sent!"),
+                                    ),
+                                  );
+                                  _refreshGames();
+                                },
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(User? user) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -116,9 +130,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        CircleAvatar(
-          backgroundColor: Theme.of(context).primaryColor,
-          child: const Icon(Icons.person, color: Colors.white),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          ),
+          child: CircleAvatar(
+            backgroundColor: const Color(0xFF2A52BE),
+            backgroundImage: (user?.photoPath != null)
+                ? FileImage(File(user!.photoPath!))
+                : null,
+            child: (user?.photoPath == null)
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
+          ),
         ),
       ],
     );
@@ -156,10 +181,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           ElevatedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CreateGameScreen()),
-            ),
+            onPressed: () async {
+              final result = await showModalBottomSheet<bool>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const CreateGamePop(),
+              );
+
+              if (result == true) {
+                _refreshGames();
+              }
+            },
             child: const Text('Create'),
           ),
         ],

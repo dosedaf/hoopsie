@@ -12,7 +12,9 @@ class MinigameScreen extends StatefulWidget {
 
 class _MinigameScreenState extends State<MinigameScreen> {
   final _quizService = QuizService();
-  final _userId = DatabaseService().currentUserId;
+
+  // Changed to String? to allow for the possibility that no user is logged in
+  final String? _userId = DatabaseService().currentUserId;
 
   List<QuizQuestion> _questions = [];
   int _current = 0;
@@ -21,6 +23,7 @@ class _MinigameScreenState extends State<MinigameScreen> {
   bool _allDone = false;
   bool _loading = true;
 
+  // Helper to safely get the current question
   QuizQuestion get q => _questions[_current];
 
   @override
@@ -30,7 +33,17 @@ class _MinigameScreenState extends State<MinigameScreen> {
   }
 
   Future<void> _loadQuestions() async {
-    final questions = await _quizService.getUnansweredQuestions(_userId);
+    // Check if a user is actually logged in before calling the service
+    if (_userId == null) {
+      setState(() {
+        _allDone = true;
+        _loading = false;
+      });
+      return;
+    }
+
+    // Using the ! (bang) operator here is now safe because of the null check above
+    final questions = await _quizService.getUnansweredQuestions(_userId!);
     setState(() {
       _questions = questions;
       _allDone = questions.isEmpty;
@@ -39,12 +52,15 @@ class _MinigameScreenState extends State<MinigameScreen> {
   }
 
   void _answer(int index) {
-    if (_answered) return;
+    if (_answered || _userId == null) return;
+
     setState(() {
       _selected = index;
       _answered = true;
     });
-    _quizService.markAnswered(userId: _userId, questionId: q.id);
+
+    // Mark the question as answered in the database service
+    _quizService.markAnswered(userId: _userId!, questionId: q.id);
   }
 
   void _next() {
@@ -58,6 +74,8 @@ class _MinigameScreenState extends State<MinigameScreen> {
       _answered = false;
     });
   }
+
+  // --- UI Styling Methods ---
 
   Color _optionBg(int i) {
     if (!_answered) return Colors.white;
@@ -104,44 +122,45 @@ class _MinigameScreenState extends State<MinigameScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const SafeArea(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (_allDone) return _buildAllDoneScreen();
+    if (_allDone) return Scaffold(body: _buildAllDoneScreen());
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Minigame',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildQuestionCard(),
-                    const SizedBox(height: 20),
-                    _buildOptions(),
-                    const SizedBox(height: 4),
-                    if (_answered) _buildNextButton(),
-                    const SizedBox(height: 16),
-                  ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Minigame',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildQuestionCard(),
+                      const SizedBox(height: 20),
+                      _buildOptions(),
+                      const SizedBox(height: 4),
+                      if (_answered) _buildNextButton(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -167,24 +186,18 @@ class _MinigameScreenState extends State<MinigameScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-        if (q.imageUrl != null)
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: q.imageUrl!.startsWith('http')
-                  ? Image.network(
-                      q.imageUrl!,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                    )
-                  : Image.asset(
-                      q.imageUrl!,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                    ),
+          if (q.imageUrl != null)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: q.imageUrl!.startsWith('http')
+                    ? Image.network(q.imageUrl!, fit: BoxFit.cover)
+                    : Image.asset(q.imageUrl!, fit: BoxFit.cover),
+              ),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
@@ -209,18 +222,10 @@ class _MinigameScreenState extends State<MinigameScreen> {
           padding: const EdgeInsets.only(bottom: 10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
             decoration: BoxDecoration(
               color: _optionBg(i),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _optionBorder(i), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
             child: Material(
               color: Colors.transparent,
@@ -228,12 +233,10 @@ class _MinigameScreenState extends State<MinigameScreen> {
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => _answer(i),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
+                      Container(
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
@@ -244,7 +247,6 @@ class _MinigameScreenState extends State<MinigameScreen> {
                           child: Text(
                             _labels[i % _labels.length],
                             style: TextStyle(
-                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: _labelTextColor(i),
                             ),
@@ -256,16 +258,13 @@ class _MinigameScreenState extends State<MinigameScreen> {
                         child: Text(
                           q.options[i],
                           style: TextStyle(
-                            fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: _optionTextColor(i),
                           ),
                         ),
                       ),
-                      if (_trailingIcon(i) != null) ...[
-                        const SizedBox(width: 8),
+                      if (_trailingIcon(i) != null)
                         Icon(_trailingIcon(i), color: Colors.white, size: 22),
-                      ],
                     ],
                   ),
                 ),
@@ -278,100 +277,53 @@ class _MinigameScreenState extends State<MinigameScreen> {
   }
 
   Widget _buildNextButton() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2A52BE), Color(0xFF1E3A9F)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2A52BE).withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF2A52BE),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(vertical: 15),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: _next,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Lanjut',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: 6),
-                Icon(Icons.arrow_forward_rounded,
-                    color: Colors.white, size: 18),
-              ],
-            ),
-          ),
-        ),
+      onPressed: _next,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text("Lanjut", style: TextStyle(color: Colors.white)),
+          SizedBox(width: 6),
+          Icon(Icons.arrow_forward_rounded, color: Colors.white),
+        ],
       ),
     );
   }
 
   Widget _buildAllDoneScreen() {
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2A52BE).withOpacity(0.15),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.emoji_events_rounded,
-                  size: 56,
-                  color: Color(0xFF2A52BE),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Semua soal sudah dijawab!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Belum ada kuis baru saat ini.\nKembali lagi nanti ya!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.emoji_events_rounded,
+              size: 56,
+              color: Color(0xFF2A52BE),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _userId == null
+                  ? 'Silakan Login Terlebih Dahulu'
+                  : 'Semua soal sudah dijawab!',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _userId == null
+                  ? 'Anda harus masuk akun untuk bermain.'
+                  : 'Belum ada kuis baru saat ini.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
       ),
     );

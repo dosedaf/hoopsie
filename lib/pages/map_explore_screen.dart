@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import '../services/database_service.dart';
-import '../services/osm_service.dart';
 import 'package:geodesy/geodesy.dart' as geo;
 import '../models/game.dart';
+import '../models/court.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class MapExploreScreen extends StatefulWidget {
@@ -19,21 +18,10 @@ class MapExploreScreen extends StatefulWidget {
 class _MapExploreScreenState extends State<MapExploreScreen> {
   final DatabaseService _db = DatabaseService();
 
-  List<geo.LatLng> _detectedCourts = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadOSMCourts();
-  }
-
-  Future<void> _loadOSMCourts() async {
-    final courts = await OSMService.fetchNearbyBasketballCourts(
-      -7.7956,
-      110.3695,
-    );
-    setState(() => _detectedCourts = courts);
-  }
+  File? _tempFile;
+  String _selectedType = 'Outdoor';
+  String _selectedSize = 'Full';
+  String _selectedSurface = 'Concrete';
 
   Future<String> _saveImagePermanently(String imagePath) async {
     final directory = await getApplicationDocumentsDirectory();
@@ -45,28 +33,26 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
 
   void _showAddCourtDialog(geo.LatLng point) {
     final nameController = TextEditingController();
+    final courtCountController = TextEditingController(text: "1");
+    TimeOfDay opening = const TimeOfDay(hour: 8, minute: 0);
+    TimeOfDay closing = const TimeOfDay(hour: 22, minute: 0);
     final ImagePicker picker = ImagePicker();
-    File? tempFile;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text("Add New Court"),
+            title: const Text("Add New Court Details"),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: "Court Name",
-                      hintText: "e.g. Sritex Arena",
-                    ),
+                    decoration: const InputDecoration(labelText: "Court Name"),
                   ),
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 15),
                   InkWell(
                     onTap: () async {
                       final XFile? image = await picker.pickImage(
@@ -75,77 +61,132 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                       );
                       if (image != null) {
                         setDialogState(() {
-                          tempFile = File(image.path);
+                          _tempFile = File(image.path);
                         });
                       }
                     },
-                    borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      height: 150,
+                      height: 120,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[400]!),
                       ),
-                      child: tempFile != null
+                      child: _tempFile != null
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(tempFile!, fit: BoxFit.cover),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(_tempFile!, fit: BoxFit.cover),
                             )
                           : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.blue,
-                                  size: 40,
-                                ),
-                                SizedBox(height: 8),
+                                Icon(Icons.photo_library, color: Colors.blue),
                                 Text(
-                                  "Tap to Take Photo",
+                                  "Pick from Gallery",
                                   style: TextStyle(color: Colors.blue),
                                 ),
                               ],
                             ),
                     ),
                   ),
+                  const SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () async {
+                          final t = await showTimePicker(
+                            context: context,
+                            initialTime: opening,
+                          );
+                          if (t != null) setDialogState(() => opening = t);
+                        },
+                        child: Text("Open: ${opening.format(context)}"),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final t = await showTimePicker(
+                            context: context,
+                            initialTime: closing,
+                          );
+                          if (t != null) setDialogState(() => closing = t);
+                        },
+                        child: Text("Close: ${closing.format(context)}"),
+                      ),
+                    ],
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedType,
+                    items: ['Indoor', 'Outdoor']
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => _selectedType = v!),
+                    decoration: const InputDecoration(labelText: "Type"),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedSize,
+                    items: ['Full', 'Half']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => _selectedSize = v!),
+                    decoration: const InputDecoration(labelText: "Court Size"),
+                  ),
+                  TextField(
+                    controller: courtCountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: "Number of Courts",
+                    ),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedSurface,
+                    items: ['Wood', 'Concrete', 'Rubber', 'Asphalt']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setDialogState(() => _selectedSurface = v!),
+                    decoration: const InputDecoration(labelText: "Surface"),
+                  ),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  _tempFile = null;
+                  Navigator.pop(context);
+                },
                 child: const Text("Cancel"),
               ),
-
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
                 onPressed: () async {
-                  if (nameController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Please enter a court name"),
-                      ),
-                    );
-                    return;
-                  }
+                  if (nameController.text.isEmpty) return;
 
                   String? savedPath;
-                  if (tempFile != null) {
-                    savedPath = await _saveImagePermanently(tempFile!.path);
+                  if (_tempFile != null) {
+                    savedPath = await _saveImagePermanently(_tempFile!.path);
                   }
 
-                  await _db.saveCourt(
+                  String openStr =
+                      "${opening.hour.toString().padLeft(2, '0')}:${opening.minute.toString().padLeft(2, '0')}";
+                  String closeStr =
+                      "${closing.hour.toString().padLeft(2, '0')}:${closing.minute.toString().padLeft(2, '0')}";
+
+                  await _db.saveCourtExtended(
                     nameController.text.trim(),
                     point.latitude,
                     point.longitude,
+                    openStr,
+                    closeStr,
+                    _selectedType,
+                    _selectedSize,
+                    int.tryParse(courtCountController.text) ?? 1,
+                    _selectedSurface,
                     savedPath,
                   );
 
+                  _tempFile = null;
                   if (context.mounted) {
                     Navigator.pop(context);
                     setState(() {});
@@ -164,10 +205,15 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Nearby Courts")),
-      body: FutureBuilder<List<Game>>(
-        future: _db.getDiscoverableGames(),
+      body: FutureBuilder<List<dynamic>>(
+        future: Future.wait([_db.getDiscoverableGames(), _db.getAllCourts()]),
         builder: (context, snapshot) {
-          final games = snapshot.data ?? [];
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final List<Game> games = snapshot.data?[0] ?? [];
+          final List<Court> allCourts = snapshot.data?[1] ?? [];
 
           return FlutterMap(
             options: MapOptions(
@@ -184,6 +230,21 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
               ),
               MarkerLayer(
                 markers: [
+                  ...allCourts.map(
+                    (court) => Marker(
+                      point: geo.LatLng(court.lat, court.lng),
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () => _showCourtOnlyPreview(court),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.blue,
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                  ),
                   ...games.map(
                     (game) => Marker(
                       point: geo.LatLng(game.courtLat, game.courtLng),
@@ -194,19 +255,8 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                         child: const Icon(
                           Icons.sports_basketball,
                           color: Colors.orange,
-                          size: 30,
+                          size: 35,
                         ),
-                      ),
-                    ),
-                  ),
-
-                  ..._detectedCourts.map(
-                    (pos) => Marker(
-                      point: pos,
-                      child: Icon(
-                        Icons.location_on,
-                        color: Colors.blueGrey.withOpacity(0.5),
-                        size: 20,
                       ),
                     ),
                   ),
@@ -255,6 +305,64 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text("View Details"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCourtOnlyPreview(Court court) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  court.name,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Chip(
+                  label: Text(court.isOpenNow ? "OPEN" : "CLOSED"),
+                  backgroundColor: court.isOpenNow
+                      ? Colors.green[100]
+                      : Colors.red[100],
+                ),
+              ],
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: Text("${court.type} • ${court.surface} Surface"),
+              subtitle: Text(
+                "Hours: ${court.openingTime} - ${court.closingTime}",
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grid_4x4),
+              title: Text(
+                "${court.courtCount} ${court.size} Court(s) Available",
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Host Game Here"),
               ),
             ),
           ],
