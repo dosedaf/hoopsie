@@ -79,12 +79,6 @@ class DatabaseService {
     FOREIGN KEY (court_id) REFERENCES courts (id)
 );
 ''');
-        await db.insert('courts', {
-          'id': 'c1',
-          'name': 'Sritex Arena, Surakarta',
-          'lat': -7.5755,
-          'lng': 110.8243,
-        });
         await db.execute('''
   CREATE TABLE game_members (
     id TEXT PRIMARY KEY,
@@ -113,14 +107,6 @@ class DatabaseService {
           FOREIGN KEY (question_id) REFERENCES quiz_questions(id),
           UNIQUE(user_id, question_id)
         )''');
-
-        await db.execute('''
-INSERT INTO users (id, name, username, password, position, skill_level)
-VALUES ('u1', 'Ayodya Enhanayoan', 'ayodya', 'password123', 'pg', 85);
-
-INSERT INTO users (id, name, username, password, position, skill_level)
-VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
-        ''');
 
         final now = DateTime.now().toIso8601String();
         final quizData = [
