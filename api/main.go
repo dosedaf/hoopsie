@@ -34,7 +34,7 @@ func calculateMatch(w http.ResponseWriter, r *http.Request) {
 		}
 		avgSkill /= float64(len(req.Players))
 	} else {
-		avgSkill = req.User.SkillLevel // Empty game is a 100% skill match
+		avgSkill = req.User.SkillLevel 
 	}
 
 	skillDiff := math.Abs(req.User.SkillLevel - avgSkill)

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../models/user.dart';
 import 'dart:io';
+import '../services/auth_manager.dart';
+import 'login_screen.dart';
+import 'saran_kesan_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -231,7 +234,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           trailing: const Icon(Icons.chevron_right, size: 20),
           onTap: () {
-            // kosong dlu
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SaranKesanScreen()),
+            );
           },
         ),
         ListTile(
@@ -256,7 +262,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             onPressed: () {
-              // Logout
+              AuthManager().logout();
+
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
             },
             icon: const Icon(Icons.logout, color: Colors.red),
             label: const Text(
