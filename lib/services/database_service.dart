@@ -617,10 +617,11 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
     SELECT 
       gm.id as member_record_id,
       gm.status as member_status,
-      u.*
+      u.name,
+      u.position
     FROM users u
-    INNER JOIN game_members gm ON u.id = gm.userId
-    WHERE gm.gameId = ?
+    INNER JOIN game_members gm ON u.id = gm.user_id  
+    WHERE gm.game_id = ?                            
   ''',
       [gameId],
     );
