@@ -25,14 +25,16 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    // final String dbDirectory = await getDatabasesPath();
-    final String dbDirectory = join(Directory.current.path, 'database');
+    final String dbDirectory = await getDatabasesPath();
     final String path = join(dbDirectory, 'hoopsie.db');
+
+    /*final String dbDirectory = join(Directory.current.path, 'database');
+    
 
     final directory = Directory(dbDirectory);
     if (!await directory.exists()) {
       await directory.create(recursive: true);
-    }
+    }*/ 
 
     log("DEBUG: Database is located at: $path");
     return await openDatabase(
@@ -612,4 +614,17 @@ class DatabaseService {
       [gameId],
     );
   }
+
+  Future<User?> getUserById(String id) async {
+    final db = await database;
+    final maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id,]
+    );
+    if (maps.isEmpty) return null;
+    return User.fromMap(maps.first);
+  }
 }
+
+

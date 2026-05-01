@@ -223,6 +223,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             ),
             children: [
               TileLayer(
+                retinaMode: RetinaMode.isHighDensity(context),
                 urlTemplate:
                     'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],

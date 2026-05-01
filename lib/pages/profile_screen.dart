@@ -3,6 +3,7 @@ import '../services/database_service.dart';
 import '../models/user.dart';
 import 'dart:io';
 import '../services/auth_manager.dart';
+import '../services/biometric_service.dart';
 import 'login_screen.dart';
 import 'saran_kesan_screen.dart';
 
@@ -15,12 +16,78 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final DatabaseService _db = DatabaseService();
+  final BiometricService _biometric = BiometricService();
   late Future<User?> _userFuture;
+
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _userFuture = _db.getCurrentUser();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final available = await _biometric.isAvailable();
+    final userId = AuthManager().currentUserId;
+    final enabled = userId != null
+        ? await AuthManager().isBiometricEnabled(userId)
+        : false;
+    setState(() {
+      _biometricAvailable = available;
+      _biometricEnabled = enabled;
+    });
+  }
+
+  Future<void> _toggleBiometric() async {
+    final userId = AuthManager().currentUserId;
+    if (userId == null) return;
+
+    if (_biometricEnabled) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nonaktifkan Biometrik?'),
+          content: const Text(
+              'Kamu perlu login dengan username dan password setelah ini.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Nonaktifkan',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await AuthManager().removeBiometricUser(userId);
+        setState(() => _biometricEnabled = false);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login biometrik dinonaktifkan')),
+        );
+      }
+    } else {
+      final success = await _biometric.authenticate();
+      if (!success) return;
+
+      final userId = AuthManager().currentUserId;
+      if (userId == null) return;
+
+      await AuthManager().saveBiometricUser(userId);
+      setState(() => _biometricEnabled = true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login biometrik diaktifkan')),
+      );
+    }
   }
 
   @override
@@ -44,7 +111,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+          if (snapshot.hasError ||
+              !snapshot.hasData ||
+              snapshot.data == null) {
             return const Center(child: Text("Error loading profile."));
           }
 
@@ -77,7 +146,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF2A52BE), width: 2),
+                  border:
+                      Border.all(color: const Color(0xFF2A52BE), width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 55,
@@ -173,7 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SizedBox(width: 12),
                   Text(
                     "Overall Rating",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -214,7 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -230,13 +302,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           leading: const Icon(Icons.rate_review_rounded, color: Colors.orange),
           title: const Text(
             "Menu Saran dan Kesan Mata Kuliah TPM",
-            style: TextStyle(fontWeight: FontWeight.w500, color: Colors.orange),
+            style: TextStyle(
+                fontWeight: FontWeight.w500, color: Colors.orange),
           ),
           trailing: const Icon(Icons.chevron_right, size: 20),
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SaranKesanScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const SaranKesanScreen()),
             );
           },
         ),
@@ -250,6 +324,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trailing: const Icon(Icons.chevron_right, size: 20),
           onTap: () {},
         ),
+
+        if (_biometricAvailable) ...[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.fingerprint,
+              color: _biometricEnabled
+                  ? const Color(0xFF2A52BE)
+                  : Colors.grey,
+            ),
+            title: const Text(
+              'Login Biometrik',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              _biometricEnabled ? 'Aktif' : 'Nonaktif',
+              style: TextStyle(
+                fontSize: 12,
+                color: _biometricEnabled
+                    ? const Color(0xFF2A52BE)
+                    : Colors.grey,
+              ),
+            ),
+            trailing: Switch(
+              value: _biometricEnabled,
+              activeColor: const Color(0xFF2A52BE),
+              onChanged: (_) => _toggleBiometric(),
+            ),
+          ),
+        ],
+
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
@@ -263,7 +368,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () {
               AuthManager().logout();
-
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                 (Route<dynamic> route) => false,
@@ -272,7 +376,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.logout, color: Colors.red),
             label: const Text(
               "Log Out",
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style:
+                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ),

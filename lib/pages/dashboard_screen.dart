@@ -23,12 +23,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Map<String, int> _gameScores = {};
 
+  final _searchController = TextEditingController();
+  List<Game> _allGames = [];
+  List<Game> _filteredGames = [];
+  String _searchQuery = '';
+
   String? get currentUserId => AuthManager().currentUserId;
 
   @override
   void initState() {
     super.initState();
     _refreshGames();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+      _filteredGames = _allGames.where((game) {
+        return game.name.toLowerCase().contains(_searchQuery) ||
+            (game.courtName?.toLowerCase().contains(_searchQuery) ?? false) ||
+            (game.hostName?.toLowerCase().contains(_searchQuery) ?? false);
+      }).toList();
+    });
   }
 
   void _refreshGames() {
@@ -51,6 +75,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             debugPrint("Error fetching AI score for game ${game.id}: $e");
           }
         }
+        _allGames = games;
+        _filteredGames = games;
         return games;
       });
     });
@@ -80,6 +106,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     'Available Games Nearby',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 12),
+                  _buildSearchBar(),
                   const SizedBox(height: 16),
 
                   FutureBuilder<List<Game>>(
@@ -98,24 +126,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         return Center(child: Text("Error: ${snapshot.error}"));
                       }
 
-                      final games = snapshot.data ?? [];
+                      final games = _searchQuery.isEmpty
+                          ? (snapshot.data ?? [])
+                          : _filteredGames;
 
                       if (games.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Padding(
-                            padding: EdgeInsets.all(40.0),
+                            padding: const EdgeInsets.all(40.0),
                             child: Column(
                               children: [
                                 Icon(
-                                  Icons.search_off,
+                                  _searchQuery.isEmpty ? Icons.search_off : Icons.manage_search,
                                   size: 48,
                                   color: Colors.grey,
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 Text(
-                                  "No games available nearby right now.\nWhy not create one?",
+                                  _searchQuery.isEmpty
+                                      ? "No games available nearby right now.\nWhy not create one?"
+                                      : 'Tidak ada game yang cocok dengan "$_searchQuery"',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey),
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
@@ -154,6 +186,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Cari nama game, lapangan, atau host...',
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF2A52BE)),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                onPressed: () => _searchController.clear(),
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2A52BE), width: 1.5),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(User? user) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -163,7 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Icon(Icons.location_on, color: Color(0xFF2A52BE)),
             const SizedBox(width: 8),
             Text(
-              user!.name ?? 'unknown user',
+              user?.name ?? 'unknown user',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
