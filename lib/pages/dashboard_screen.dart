@@ -163,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Icon(Icons.location_on, color: Color(0xFF2A52BE)),
             const SizedBox(width: 8),
             Text(
-              'Surakarta',
+              user!.name ?? 'unknown user',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
