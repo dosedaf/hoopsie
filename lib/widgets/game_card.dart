@@ -9,11 +9,13 @@ class GameCard extends StatelessWidget {
   final VoidCallback? onJoin;
   final VoidCallback? onTap;
   final VoidCallback? onLeave;
+  final int? matchScore;
 
   const GameCard({
     super.key,
     required this.game,
     required this.isMyGame,
+    this.matchScore,
     this.onDelete,
     this.onJoin,
     this.onTap,
@@ -25,9 +27,10 @@ class GameCard extends StatelessWidget {
     final String timeRange =
         "${DateFormat('MMM d, HH:mm').format(game.startTime)} - ${DateFormat('HH:mm').format(game.endTime)}";
 
+    Color scoreColor = (matchScore ?? 0) >= 80 ? Colors.green : Colors.orange;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
-      // REMOVED padding: const EdgeInsets.all(16) from here
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -62,6 +65,39 @@ class GameCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    // Match Quality Badge
+                    if (matchScore != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: scoreColor.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.bolt, size: 12, color: scoreColor),
+                            const SizedBox(width: 2),
+                            Text(
+                              "$matchScore% Match",
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    // Game Type Badge (1v1, 3v3, etc)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -155,40 +191,7 @@ class GameCard extends StatelessWidget {
                         ),
                       )
                     else
-                      Builder(
-                        builder: (context) {
-                          if (game.currentUserStatus == 'pending') {
-                            return ElevatedButton(
-                              onPressed: null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.withOpacity(0.5),
-                              ),
-                              child: const Text("Requested"),
-                            );
-                          } else if (game.currentUserStatus == 'approved') {
-                            return ElevatedButton(
-                              onPressed: null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue.withOpacity(0.5),
-                              ),
-                              child: const Text("Joined"),
-                            );
-                          } else {
-                            return ElevatedButton(
-                              onPressed: onJoin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text("Join Game"),
-                            );
-                          }
-                        },
-                      ),
+                      _buildJoinButton(),
                   ],
                 ),
               ],
@@ -199,25 +202,32 @@ class GameCard extends StatelessWidget {
     );
   }
 
-  Widget _buildParticipantActionButton() {
-    if (game.currentUserStatus != null) {
-      // If user has a status (pending or approved), show "Leave"
-      return OutlinedButton.icon(
+  Widget _buildJoinButton() {
+    if (game.currentUserStatus == 'pending') {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange.withOpacity(0.5),
+        ),
+        child: const Text("Requested"),
+      );
+    } else if (game.currentUserStatus == 'approved') {
+      return ElevatedButton(
         onPressed: onLeave,
-        icon: const Icon(Icons.exit_to_app, size: 16, color: Colors.orange),
-        label: Text(
-          game.currentUserStatus == 'approved' ? "Leave" : "Cancel Request",
-          style: const TextStyle(color: Colors.orange),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue.withOpacity(0.5),
         ),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.orange),
-        ),
+        child: const Text("Joined"),
       );
     } else {
-      // Standard Join button
       return ElevatedButton(
         onPressed: onJoin,
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
         child: const Text("Join Game"),
       );
     }

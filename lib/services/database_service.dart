@@ -430,22 +430,21 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
     );
   }
 
-  Future<List<Map<String, dynamic>>> getGameParticipants(String gameId) async {
+  Future<List<User>> getGameParticipants(String gameId) async {
     final db = await database;
-    return await db.rawQuery(
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
-    SELECT 
-      game_members.id AS member_record_id,
-      game_members.status,
-      users.id AS user_id,
-      users.name,
-      users.position
-    FROM game_members
-    JOIN users ON game_members.user_id = users.id
-    WHERE game_members.game_id = ?
+    SELECT users.* FROM users
+    INNER JOIN game_participants ON users.id = game_participants.user_id
+    WHERE game_participants.game_id = ? AND game_participants.status = 'approved'
   ''',
       [gameId],
     );
+
+    return List.generate(maps.length, (i) {
+      return User.fromMap(maps[i]);
+    });
   }
 
   Future<void> updateMemberStatus(String recordId, String status) async {
@@ -606,5 +605,24 @@ VALUES ('u2', 'Budi Santoso', 'budisan', 'password456', 'c', 70);
 
     if (maps.isEmpty) return null;
     return User.fromMap(maps.first);
+  }
+
+  Future<List<Map<String, dynamic>>> getParticipantsWithDetails(
+    String gameId,
+  ) async {
+    final db = await database;
+
+    return await db.rawQuery(
+      '''
+    SELECT 
+      gm.id as member_record_id,
+      gm.status as member_status,
+      u.*
+    FROM users u
+    INNER JOIN game_members gm ON u.id = gm.userId
+    WHERE gm.gameId = ?
+  ''',
+      [gameId],
+    );
   }
 }

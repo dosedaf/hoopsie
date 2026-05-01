@@ -18,11 +18,13 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.game.name)),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _db.getGameParticipants(widget.game.id),
+        future: _db.getParticipantsWithDetails(widget.game.id),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          final participants = snapshot.data!;
+          }
+
+          final participants = snapshot.data ?? [];
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -32,25 +34,25 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              ...participants.map(
-                (p) => ListTile(
+              ...participants.map((p) {
+                final String status = p['member_status'];
+                final String recordId = p['member_record_id'];
+
+                return ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.person)),
                   title: Text(p['name']),
-                  subtitle: Text("${p['position']} • Status: ${p['status']}"),
-                  trailing: p['status'] == 'pending'
+                  subtitle: Text("${p['position']} • Status: $status"),
+                  trailing: status == 'pending'
                       ? ElevatedButton(
                           onPressed: () async {
-                            await _db.updateMemberStatus(
-                              p['member_record_id'],
-                              'approved',
-                            );
+                            await _db.updateMemberStatus(recordId, 'approved');
                             setState(() {});
                           },
                           child: const Text("Accept"),
                         )
                       : const Icon(Icons.check_circle, color: Colors.green),
-                ),
-              ),
+                );
+              }),
             ],
           );
         },
