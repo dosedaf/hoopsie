@@ -310,17 +310,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           },
         ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.history, color: Colors.black87),
-          title: const Text(
-            "Game History",
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          trailing: const Icon(Icons.chevron_right, size: 20),
-          onTap: () {},
-        ),
-
         if (_biometricAvailable) ...[
           ListTile(
             contentPadding: EdgeInsets.zero,

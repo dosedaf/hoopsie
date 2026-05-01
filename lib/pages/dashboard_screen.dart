@@ -143,6 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
+                  const SizedBox(height: 20),
                   _buildHeader(currentUser),
                   const SizedBox(height: 24),
                   _buildCreateGameShortcut(),
