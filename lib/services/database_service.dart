@@ -25,16 +25,17 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    final String dbDirectory = await getDatabasesPath();
-    final String path = join(dbDirectory, 'hoopsie.db');
+    // final String dbDirectory = await getDatabasesPath();
 
-    /*final String dbDirectory = join(Directory.current.path, 'database');
+    final String dbDirectory = join(Directory.current.path, 'database');
+    final String path = join(dbDirectory, 'hoopsie.db');
+    /*
     
 
     final directory = Directory(dbDirectory);
     if (!await directory.exists()) {
       await directory.create(recursive: true);
-    }*/ 
+    }*/
 
     log("DEBUG: Database is located at: $path");
     return await openDatabase(
@@ -214,16 +215,21 @@ class DatabaseService {
     );
   }
 
-  Future<User?> loginUser(String username, String password) async {
+  Future<User?> loginUser(String username, String plainPassword) async {
     final db = await database;
+
     final List<Map<String, dynamic>> maps = await db.query(
       'users',
-      where: 'username = ? AND password = ?',
-      whereArgs: [username, password],
+      where: 'username = ?',
+      whereArgs: [username],
     );
 
     if (maps.isNotEmpty) {
-      return User.fromMap(maps.first);
+      final user = User.fromMap(maps.first);
+
+      if (user.verifyPassword(plainPassword)) {
+        return user;
+      }
     }
     return null;
   }
@@ -617,14 +623,8 @@ class DatabaseService {
 
   Future<User?> getUserById(String id) async {
     final db = await database;
-    final maps = await db.query(
-      'users',
-      where: 'id = ?',
-      whereArgs: [id,]
-    );
+    final maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
     if (maps.isEmpty) return null;
     return User.fromMap(maps.first);
   }
 }
-
-

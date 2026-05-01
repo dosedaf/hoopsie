@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart' as geo;
+import 'package:geocoding/geocoding.dart';
 import '../models/game.dart';
 import '../models/user.dart';
 import '../widgets/game_card.dart';
@@ -22,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Future<List<Game>> _gamesFuture;
 
   Map<String, int> _gameScores = {};
+  String _currentCity = "Fetching location...";
 
   final _searchController = TextEditingController();
   List<Game> _allGames = [];
@@ -34,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _refreshGames();
+    _getCityName();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -42,6 +46,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCityName() async {
+    try {
+      bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _currentCity = "Yogyakarta"); // Fallback for Linux
+        return;
+      }
+
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
+        if (permission == geo.LocationPermission.denied) {
+          setState(() => _currentCity = "Yogyakarta");
+          return;
+        }
+      }
+
+      geo.Position position = await geo.Geolocator.getCurrentPosition(
+        desiredAccuracy: geo.LocationAccuracy.low,
+      ).timeout(const Duration(seconds: 3));
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        setState(() {
+          _currentCity =
+              placemarks[0].subAdministrativeArea ??
+              placemarks[0].locality ??
+              "Yogyakarta";
+        });
+      }
+    } catch (e) {
+      // default
+      setState(() => _currentCity = "Yogyakarta");
+    }
   }
 
   void _onSearchChanged() {
@@ -65,9 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         for (var game in games) {
           try {
             final participants = await _db.getGameParticipants(game.id);
-
             final score = await _ml.getMatchQuality(currentUser, participants);
-
             if (score != null) {
               _gameScores[game.id] = score;
             }
@@ -93,12 +136,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final currentUser = userSnapshot.data;
 
             return RefreshIndicator(
-              onRefresh: () async => _refreshGames(),
+              onRefresh: () async {
+                _refreshGames();
+                await _getCityName();
+              },
               child: ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
                   _buildHeader(currentUser),
-
                   const SizedBox(height: 24),
                   _buildCreateGameShortcut(),
                   const SizedBox(height: 32),
@@ -109,7 +154,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 12),
                   _buildSearchBar(),
                   const SizedBox(height: 16),
-
                   FutureBuilder<List<Game>>(
                     future: _gamesFuture,
                     builder: (context, snapshot) {
@@ -137,7 +181,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               children: [
                                 Icon(
-                                  _searchQuery.isEmpty ? Icons.search_off : Icons.manage_search,
+                                  _searchQuery.isEmpty
+                                      ? Icons.search_off
+                                      : Icons.manage_search,
                                   size: 48,
                                   color: Colors.grey,
                                 ),
@@ -164,7 +210,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onJoin: () async {
                               await _db.joinGame(game.id);
                               if (!mounted) return;
-
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text("Request to join sent!"),
@@ -201,7 +246,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : null,
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[200]!),
@@ -227,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Icon(Icons.location_on, color: Color(0xFF2A52BE)),
             const SizedBox(width: 8),
             Text(
-              user?.name ?? 'unknown user',
+              _currentCity,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -321,7 +369,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 backgroundColor: Colors.transparent,
                 builder: (context) => const CreateGamePop(),
               );
-
               if (result == true) {
                 _refreshGames();
               }

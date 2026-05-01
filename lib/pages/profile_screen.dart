@@ -4,7 +4,7 @@ import '../models/user.dart';
 import 'dart:io';
 import '../services/auth_manager.dart';
 import '../services/biometric_service.dart';
-import 'login_screen.dart';
+import 'auth_screen.dart';
 import 'saran_kesan_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -51,7 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Nonaktifkan Biometrik?'),
           content: const Text(
-              'Kamu perlu login dengan username dan password setelah ini.'),
+            'Kamu perlu login dengan username dan password setelah ini.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -60,8 +61,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Nonaktifkan',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Nonaktifkan',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -111,9 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError ||
-              !snapshot.hasData ||
-              snapshot.data == null) {
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
             return const Center(child: Text("Error loading profile."));
           }
 
@@ -146,8 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border:
-                      Border.all(color: const Color(0xFF2A52BE), width: 2),
+                  border: Border.all(color: const Color(0xFF2A52BE), width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 55,
@@ -243,8 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SizedBox(width: 12),
                   Text(
                     "Overall Rating",
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -285,8 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             Text(
               value,
-              style:
-                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -302,15 +300,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           leading: const Icon(Icons.rate_review_rounded, color: Colors.orange),
           title: const Text(
             "Menu Saran dan Kesan Mata Kuliah TPM",
-            style: TextStyle(
-                fontWeight: FontWeight.w500, color: Colors.orange),
+            style: TextStyle(fontWeight: FontWeight.w500, color: Colors.orange),
           ),
           trailing: const Icon(Icons.chevron_right, size: 20),
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (context) => const SaranKesanScreen()),
+              MaterialPageRoute(builder: (context) => const SaranKesanScreen()),
             );
           },
         ),
@@ -330,9 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(
               Icons.fingerprint,
-              color: _biometricEnabled
-                  ? const Color(0xFF2A52BE)
-                  : Colors.grey,
+              color: _biometricEnabled ? const Color(0xFF2A52BE) : Colors.grey,
             ),
             title: const Text(
               'Login Biometrik',
@@ -369,15 +363,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () {
               AuthManager().logout();
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                MaterialPageRoute(builder: (context) => const AuthScreen()),
                 (Route<dynamic> route) => false,
               );
             },
             icon: const Icon(Icons.logout, color: Colors.red),
             label: const Text(
               "Log Out",
-              style:
-                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ),

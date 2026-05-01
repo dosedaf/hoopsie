@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:crypt/crypt.dart';
 
 enum Position {
   pg("Point Guard", "G"),
@@ -86,5 +87,13 @@ class User {
       'skill_level': skillLevel,
       'photo_path': photoPath,
     };
+  }
+
+  bool verifyPassword(String plainPassword) {
+    return Crypt(password).match(plainPassword);
+  }
+
+  static String hashPassword(String plainPassword) {
+    return Crypt.sha256(plainPassword).toString();
   }
 }

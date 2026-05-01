@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
-import 'pages/login_screen.dart';
+import 'pages/auth_screen.dart';
 import 'services/database_service.dart';
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -33,7 +33,7 @@ class HoopsieApp extends StatelessWidget {
       title: 'Hoopsie',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const AuthScreen(),
     );
   }
 }
