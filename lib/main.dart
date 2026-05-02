@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ta_tes/services/notification_service.dart';
 import 'theme.dart';
 import 'pages/auth_screen.dart';
 import 'services/database_service.dart';
@@ -7,6 +8,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
 
   if (Platform.isLinux || Platform.isWindows) {
     sqfliteFfiInit();

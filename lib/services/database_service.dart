@@ -25,9 +25,9 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    // final String dbDirectory = await getDatabasesPath();
+    final String dbDirectory = await getDatabasesPath();
 
-    final String dbDirectory = join(Directory.current.path, 'database');
+    //final String dbDirectory = join(Directory.current.path, 'database');
     final String path = join(dbDirectory, 'hoopsie.db');
     /*
     

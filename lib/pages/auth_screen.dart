@@ -56,6 +56,80 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+    Future<void> _loginWithBiometric() async {
+    final success = await _biometric.authenticate();
+    if (!success) return;
+
+    // Load semua akun yang punya biometrik aktif
+    final ids = await AuthManager().getBiometricUserIds();
+    if (ids.isEmpty) return;
+
+    if (ids.length == 1) {
+      // Langsung login kalau hanya 1 akun
+      final user = await _db.getUserById(ids.first);
+      if (user == null) return;
+      _doLogin(user);
+    } else {
+      // Tampilkan picker kalau lebih dari 1 akun
+      if (!mounted) return;
+      final users = (await Future.wait(
+        ids.map((id) => _db.getUserById(id)),
+      )).whereType<User>().toList();
+
+      if (!mounted) return;
+      _showAccountPicker(users);
+    }
+  }
+
+    void _showAccountPicker(List<User> users) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Pilih Akun',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Masuk sebagai siapa?',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ...users.map((user) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF2A52BE),
+                    child: Text(
+                      user.name.isNotEmpty
+                          ? user.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  title: Text(
+                    user.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('@${user.username}'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _doLogin(user);
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _togglePage(bool isLogin) {
     if (_isLoginSelected == isLogin) return;
     setState(() => _isLoginSelected = isLogin);
@@ -270,7 +344,7 @@ class _AuthScreenState extends State<AuthScreen> {
           if (_biometricAvailable && _hasBiometricUsers) ...[
             const SizedBox(height: 16),
             TextButton.icon(
-              onPressed: () {},
+              onPressed: _loginWithBiometric,
               icon: Icon(Icons.fingerprint, color: primaryBlue),
               label: Text(
                 "Login with Biometrics",

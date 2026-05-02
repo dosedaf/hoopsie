@@ -25,12 +25,19 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   String _selectedType = 'Outdoor';
   String _selectedSize = 'Full';
   String _selectedSurface = 'Concrete';
+  late Future<List<dynamic>> _mapDataFuture;
 
   @override
   void initState() {
     super.initState();
     _initLocation();
+    _mapDataFuture = _buildMapFuture();
   }
+
+  Future<List<dynamic>> _buildMapFuture() => Future.wait([
+    _db.getDiscoverableGames(),
+    _db.getAllCourts(),
+  ]);
 
   Future<void> _initLocation() async {
     try {
@@ -164,7 +171,9 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                   if (mounted) {
                     _tempFile = null;
                     Navigator.pop(context);
-                    setState(() {});
+                    setState(() {
+                      _mapDataFuture = _buildMapFuture();
+                    });
                   }
                 },
                 child: const Text("Save Court"),
@@ -183,13 +192,14 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
       body: _isLoadingLocation
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<List<dynamic>>(
-              future: Future.wait([
-                _db.getDiscoverableGames(),
-                _db.getAllCourts(),
-              ]),
+              future: _mapDataFuture,
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
                 final List<Game> games = snapshot.data![0];
                 final List<Court> allCourts = snapshot.data![1];
