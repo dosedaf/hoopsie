@@ -107,17 +107,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         if (currentUser == null) return games;
 
-        for (var game in games) {
-          try {
-            final participants = await _db.getGameParticipants(game.id);
-            final score = await _ml.getMatchQuality(currentUser, participants);
-            if (score != null) {
-              _gameScores[game.id] = score;
-            }
-          } catch (e) {
-            debugPrint("Error fetching AI score for game ${game.id}: $e");
-          }
-        }
         _allGames = games;
         _filteredGames = games;
         return games;

@@ -25,9 +25,9 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    final String dbDirectory = await getDatabasesPath();
+    // final String dbDirectory = await getDatabasesPath();
 
-    //final String dbDirectory = join(Directory.current.path, 'database');
+    final String dbDirectory = join(Directory.current.path, 'database');
     final String path = join(dbDirectory, 'hoopsie.db');
     /*
     
@@ -626,5 +626,15 @@ class DatabaseService {
     final maps = await db.query('users', where: 'id = ?', whereArgs: [id]);
     if (maps.isEmpty) return null;
     return User.fromMap(maps.first);
+  }
+
+  Future<void> updateUserSkill(String userId, int newScore) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'skill_level': newScore},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
   }
 }

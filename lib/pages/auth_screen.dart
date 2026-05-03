@@ -56,7 +56,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
-    Future<void> _loginWithBiometric() async {
+  Future<void> _loginWithBiometric() async {
     final success = await _biometric.authenticate();
     if (!success) return;
 
@@ -81,7 +81,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-    void _showAccountPicker(List<User> users) {
+  void _showAccountPicker(List<User> users) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -103,27 +103,27 @@ class _AuthScreenState extends State<AuthScreen> {
               style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            ...users.map((user) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF2A52BE),
-                    child: Text(
-                      user.name.isNotEmpty
-                          ? user.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(color: Colors.white),
-                    ),
+            ...users.map(
+              (user) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: const Color(0xFF2A52BE),
+                  child: Text(
+                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white),
                   ),
-                  title: Text(
-                    user.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text('@${user.username}'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _doLogin(user);
-                  },
-                )),
+                ),
+                title: Text(
+                  user.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('@${user.username}'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _doLogin(user);
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -224,8 +224,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _isLoginSelected
-                      ? "Sign in to continue managing your games"
-                      : "Sign up to enjoy the best experience",
+                      ? "Sign in to run some play!"
+                      : "Sign up to start ballin",
                   style: TextStyle(color: Colors.white.withOpacity(0.7)),
                 ),
               ],

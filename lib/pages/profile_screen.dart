@@ -5,6 +5,7 @@ import 'dart:io';
 import '../services/auth_manager.dart';
 import '../services/biometric_service.dart';
 import 'auth_screen.dart';
+import 'skill_test_screen.dart';
 import 'saran_kesan_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -299,8 +300,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.rate_review_rounded, color: Colors.orange),
           title: const Text(
-            "Menu Saran dan Kesan Mata Kuliah TPM",
-            style: TextStyle(fontWeight: FontWeight.w500, color: Colors.orange),
+            "Saran Kesan Matkul TPM",
+            style: TextStyle(fontWeight: FontWeight.w500),
           ),
           trailing: const Icon(Icons.chevron_right, size: 20),
           onTap: () {
@@ -308,6 +309,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               context,
               MaterialPageRoute(builder: (context) => const SaranKesanScreen()),
             );
+          },
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.psychology, color: Color(0xFF2A52BE)),
+          title: const Text(
+            "Skill Level Test",
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          subtitle: const Text("Get your basketball IQ score"),
+          trailing: const Icon(Icons.chevron_right, size: 20),
+          onTap: () async {
+            final updated = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SkillTestScreen()),
+            );
+            if (updated == true) {
+              setState(() {
+                _userFuture = _db.getCurrentUser(); // Refresh profile UI
+              });
+            }
           },
         ),
         if (_biometricAvailable) ...[
