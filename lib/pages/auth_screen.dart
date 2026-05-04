@@ -4,6 +4,7 @@ import '../services/database_service.dart';
 import '../services/auth_manager.dart';
 import '../services/biometric_service.dart';
 import '../models/user.dart';
+import 'package:flutter/services.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -153,6 +154,25 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _handleRegister() async {
+    final exist = await _db.getUserByUsername(_signUser.text.trim());
+    if(exist != null){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Username sudah digunakan'),
+        ),
+      );
+      return;
+    }
+    
+    if (_signName.text.trim().isEmpty || _signUser.text.trim().isEmpty || _signPass.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Semua field harus diisi'),
+        ),
+      );
+      return;
+    }
+
     final hashedPassword = User.hashPassword(_signPass.text);
     final newUser = User(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -365,6 +385,9 @@ class _AuthScreenState extends State<AuthScreen> {
             controller: _signName,
             hint: "Full Name",
             icon: Icons.badge_outlined,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s\.]")),
+            ],
           ),
           const SizedBox(height: 16),
           _buildInputField(
@@ -402,10 +425,12 @@ class _AuthScreenState extends State<AuthScreen> {
     required String hint,
     required IconData icon,
     bool isPassword = false,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.grey, size: 20),
         hintText: hint,

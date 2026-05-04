@@ -355,6 +355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () async {
               final result = await showModalBottomSheet<bool>(
                 context: context,
+                useRootNavigator: true,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (context) => const CreateGamePop(),

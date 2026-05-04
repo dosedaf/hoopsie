@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class MLService {
-  final String _apiKey = "AIzaSyBS6eie40S3MlEcWUyDPPouVYS-okL_3Oo";
+  final String _apiKey = "AIzaSyCCXDjrhbjMrOc44uVkIKOKmpZJGORhKpc";
   final String _apiUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 

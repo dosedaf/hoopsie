@@ -22,7 +22,7 @@ class SaranKesanScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Mata kuliah Teknologi Pemrograman Mobile memberikan wawasan yang sangat praktis dalam pengembangan aplikasi modern. Saya sangat menikmati proses belajar Flutter karena dokumentasinya yang lengkap dan komunitasnya yang suportif.",
+              "Mata kuliah Teknologi Pemrograman Mobile memberikan wawasan yang sangat praktis dalam pengembangan aplikasi modern. Kami sangat menikmati proses belajar Flutter karena dokumentasinya yang lengkap dan komunitasnya yang suportif.",
               style: TextStyle(fontSize: 16, height: 1.6),
             ),
             const SizedBox(height: 32),

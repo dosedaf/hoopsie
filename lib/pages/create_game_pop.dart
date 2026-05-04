@@ -5,7 +5,8 @@ import '../services/database_service.dart';
 import 'dart:io';
 
 class CreateGamePop extends StatefulWidget {
-  const CreateGamePop({super.key});
+  final Court? preselectedCourt;
+  const CreateGamePop({super.key, this.preselectedCourt});
 
   @override
   State<CreateGamePop> createState() => _CreateGamePopState();
@@ -30,7 +31,15 @@ class _CreateGamePopState extends State<CreateGamePop> {
 
   Future<void> _loadCourts() async {
     final courts = await _db.getAllCourts();
-    setState(() => _availableCourts = courts);
+    setState((){
+      _availableCourts = courts;
+      if (widget.preselectedCourt != null){
+        selectedCourt = courts.firstWhere(
+          (c) => c.id == widget.preselectedCourt!.id,
+          orElse: () => courts.first,
+        );
+      }
+    });
   }
 
   String _formatDateTime(DateTime dt) {
@@ -41,13 +50,17 @@ class _CreateGamePopState extends State<CreateGamePop> {
   Future<void> _saveGame() async {
     final userId = _db.currentUserId;
 
-    if (_nameController.text.isEmpty ||
-        selectedCourt == null ||
-        selectedStartTime == null ||
-        userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lengkapi detail game atau pastikan Anda sudah login'),
+    if (_nameController.text.isEmpty || selectedCourt == null || selectedStartTime == null || userId == null) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          content: const Text('Lengkapi semua detail game'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
       return;

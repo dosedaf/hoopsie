@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ta_tes/pages/jump_counter_screen.dart';
 import 'currency_convert_screen.dart';
 import 'time_convert_screen.dart';
 import 'minigame_screen.dart';
@@ -13,6 +14,15 @@ class ToolsHubScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+                    _buildToolCard(
+            context,
+            title: "Jump Counter",
+            subtitle: "How many jumps in 30 seconds?",
+            icon: Icons.sports_gymnastics,
+            color: Colors.deepPurple,
+            page: const JumpCounterScreen(),
+          ),
+          const SizedBox(height: 16),
           _buildToolCard(
             context,
             title: "Minigame",

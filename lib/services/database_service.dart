@@ -25,9 +25,9 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    // final String dbDirectory = await getDatabasesPath();
+    final String dbDirectory = await getDatabasesPath();
 
-    final String dbDirectory = join(Directory.current.path, 'database');
+    // final String dbDirectory = join(Directory.current.path, 'database');
     final String path = join(dbDirectory, 'hoopsie.db');
     /*
     
@@ -192,6 +192,16 @@ class DatabaseService {
             'assets/images/quiz/kd.avif',
           ],
         ];
+
+        await db.execute('''CREATE TABLE jump_scores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          UNIQUE(user_id)
+        )''');
+
 
         for (final q in quizData) {
           await db.insert('quiz_questions', {
@@ -637,4 +647,51 @@ class DatabaseService {
       whereArgs: [userId],
     );
   }
+
+  Future<User?> getUserByUsername(String username) async {
+    final db = await database;
+    final maps = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+    if (maps.isEmpty) return null;
+    return User.fromMap(maps.first);
+  }
+
+    Future<void> saveJumpScore(String userId, int score) async {
+    final db = await database;
+    await db.insert(
+      'jump_scores',
+      {
+        'user_id': userId,
+        'score': score,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+ 
+  Future<int?> getJumpPersonalBest(String userId) async {
+    final db = await database;
+    final maps = await db.query(
+      'jump_scores',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+    if (maps.isEmpty) return null;
+    return maps.first['score'] as int;
+  }
+ 
+  Future<List<Map<String, dynamic>>> getJumpLeaderboard() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT js.user_id, js.score, u.name
+      FROM jump_scores js
+      JOIN users u ON js.user_id = u.id
+      ORDER BY js.score DESC
+      LIMIT 10
+    ''');
+  }
+
 }

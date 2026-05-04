@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/game.dart';
 import '../models/court.dart';
 import '../services/database_service.dart';
+import 'create_game_pop.dart';
 
 class MapExploreScreen extends StatefulWidget {
   const MapExploreScreen({super.key});
@@ -61,7 +62,11 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition();
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        timeLimit: const Duration(seconds: 5),
+      );
+
       if (mounted) {
         setState(() {
           _currentPosition = position;
@@ -151,7 +156,53 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.isEmpty) return;
+                  final count = int.tryParse(courtCountController.text) ?? 0;
+                  if (nameController.text.isEmpty && count < 1) {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        content: const Text('Lengkapi semua detail lapangan!'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                      return;
+                  }
+                  if (nameController.text.isEmpty) {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        content: const Text('Masukkan nama lapangan!'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                      return;
+                  }
+                  if (count < 1){
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        content: const Text('Masukkan jumlah lapangan yang valid!'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+
                   String? savedPath;
                   if (_tempFile != null)
                     savedPath = await _saveImagePermanently(_tempFile!.path);
@@ -455,7 +506,18 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showModalBottomSheet(
+                    context: context,
+                    useRootNavigator: true,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    builder: (_) => CreateGamePop(preselectedCourt: court),
+                  );
+                },
                 child: const Text("Host Game Here"),
               ),
             ),
