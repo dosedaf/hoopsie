@@ -224,7 +224,16 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Manage My Games")),
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text(
+          "My Games",
+          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: FutureBuilder<List<Game>>(
         future: _db.getMyGamesAndJoined(),
         builder: (context, snapshot) {
@@ -232,7 +241,40 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final games = snapshot.data ?? [];
+          if (games.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.sports_basketball_outlined,
+                    size: 64,
+                    color: Color(0xFF94A3B8),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "No games hosted or joined yet",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Host a match on the Explore tab or join an active game!",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
           return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 100, top: 12),
             itemCount: games.length,
             itemBuilder: (context, index) {
               final game = games[index];

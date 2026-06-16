@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/game.dart';
 import '../models/court.dart';
 import '../services/database_service.dart';
+import '../services/currency_service.dart';
 import 'dart:io';
 
 class CreateGamePop extends StatefulWidget {
-  const CreateGamePop({super.key});
+  final Court? preselectedCourt;
+  const CreateGamePop({super.key, this.preselectedCourt});
 
   @override
   State<CreateGamePop> createState() => _CreateGamePopState();
@@ -22,15 +24,59 @@ class _CreateGamePopState extends State<CreateGamePop> {
   DateTime? selectedEndTime;
   Duration selectedDuration = const Duration(hours: 1);
 
+  Map<String, double> _rates = {};
+  String _selectedPaymentCurrency = 'IDR';
+
   @override
   void initState() {
     super.initState();
     _loadCourts();
+    _fetchRates();
+  }
+
+  Future<void> _fetchRates() async {
+    try {
+      final rates = await CurrencyService.getRates();
+      if (mounted) {
+        setState(() {
+          _rates = rates;
+        });
+      }
+    } catch (e) {
+      // Handle error silently or log
+    }
+  }
+
+  double _calculateOriginalPrice() {
+    if (selectedCourt == null) return 0.0;
+    final hours = selectedDuration.inMinutes / 60.0;
+    return selectedCourt!.price * hours;
+  }
+
+  double _getConvertedPrice() {
+    final originalPrice = _calculateOriginalPrice();
+    if (selectedCourt == null || _rates.isEmpty) return originalPrice;
+
+    final courtCurr = selectedCourt!.currency;
+    final courtRate = _rates[courtCurr] ?? 1.0;
+    final priceInIdr = courtCurr == 'IDR' ? originalPrice : originalPrice / courtRate;
+
+    final payRate = _rates[_selectedPaymentCurrency] ?? 1.0;
+    final converted = _selectedPaymentCurrency == 'IDR' ? priceInIdr : priceInIdr * payRate;
+    return converted;
   }
 
   Future<void> _loadCourts() async {
     final courts = await _db.getAllCourts();
-    setState(() => _availableCourts = courts);
+    setState((){
+      _availableCourts = courts;
+      if (widget.preselectedCourt != null){
+        selectedCourt = courts.firstWhere(
+          (c) => c.id == widget.preselectedCourt!.id,
+          orElse: () => courts.first,
+        );
+      }
+    });
   }
 
   String _formatDateTime(DateTime dt) {
@@ -41,13 +87,17 @@ class _CreateGamePopState extends State<CreateGamePop> {
   Future<void> _saveGame() async {
     final userId = _db.currentUserId;
 
-    if (_nameController.text.isEmpty ||
-        selectedCourt == null ||
-        selectedStartTime == null ||
-        userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lengkapi detail game atau pastikan Anda sudah login'),
+    if (_nameController.text.isEmpty || selectedCourt == null || selectedStartTime == null || userId == null) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          content: const Text('Lengkapi semua detail game'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
       return;
@@ -66,7 +116,11 @@ class _CreateGamePopState extends State<CreateGamePop> {
       type: selectedType,
     );
 
-    await _db.insertGame(newGame);
+    await _db.insertGame(
+      newGame,
+      paymentCurrency: selectedCourt!.price > 0 ? _selectedPaymentCurrency : null,
+      convertedAmount: selectedCourt!.price > 0 ? _getConvertedPrice() : null,
+    );
     if (!mounted) return;
     Navigator.pop(context, true);
   }
@@ -242,6 +296,142 @@ class _CreateGamePopState extends State<CreateGamePop> {
                     ),
                   ),
 
+                  if (selectedCourt != null && selectedCourt!.price > 0) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.payment, color: Color(0xFF2A52BE), size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                "Court Rental Fee",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Court Hourly Rate:",
+                                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              ),
+                              Text(
+                                "${selectedCourt!.price.toStringAsFixed(2)} ${selectedCourt!.currency}/hr",
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Duration:",
+                                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              ),
+                              Text(
+                                "${(selectedDuration.inMinutes / 60.0).toStringAsFixed(1)} hr(s)",
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Total Original Cost:",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              Text(
+                                "${_calculateOriginalPrice().toStringAsFixed(2)} ${selectedCourt!.currency}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Color(0xFF2A52BE),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            "Select Payment Currency (Converter):",
+                            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedPaymentCurrency,
+                                    items: ['IDR', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'SGD']
+                                        .map((c) => DropdownMenuItem(
+                                              value: c,
+                                              child: Text(c, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        setState(() {
+                                          _selectedPaymentCurrency = v;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              if (_rates.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.green[200]!),
+                                  ),
+                                  child: Text(
+                                    "≈ ${_getConvertedPrice().toStringAsFixed(2)} $_selectedPaymentCurrency",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                )
+                              else
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,

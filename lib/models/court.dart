@@ -12,6 +12,11 @@ class Court {
   final String size; // Full/Half
   final int courtCount; // Number of courts
   final String surface; // Wood, Concrete, Rubber
+  final double price; // Price per hour
+  final String currency; // E.g., IDR, USD
+  final String? ownerId;
+  final String? bankName;
+  final String? bankAccount;
 
   Court({
     required this.id,
@@ -25,6 +30,11 @@ class Court {
     this.size = "Full",
     this.courtCount = 1,
     this.surface = "Concrete",
+    this.price = 0.0,
+    this.currency = "IDR",
+    this.ownerId,
+    this.bankName,
+    this.bankAccount,
   });
 
   bool get isOpenNow {
@@ -58,6 +68,11 @@ class Court {
       size: map['size'] ?? "Full",
       courtCount: map['court_count'] ?? 1,
       surface: map['surface'] ?? "Concrete",
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      currency: map['currency'] ?? "IDR",
+      ownerId: map['owner_id']?.toString(),
+      bankName: map['bank_name'],
+      bankAccount: map['bank_account'],
     );
   }
 }

@@ -103,12 +103,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _refreshGames() {
     setState(() {
       _gamesFuture = _db.getDiscoverableGames().then((games) async {
-        final currentUser = AuthManager().currentUser;
-
-        if (currentUser == null) return games;
-
         _allGames = games;
         _filteredGames = games;
+
+        final currentUser = await _db.getCurrentUser();
+        if (currentUser != null && games.isNotEmpty) {
+          try {
+            final scores = await _ml.calculateMatchScores(
+              user: currentUser,
+              games: games,
+            );
+            if (mounted) {
+              setState(() {
+                _gameScores = scores;
+              });
+            }
+          } catch (e) {
+            debugPrint("ML matching error: $e");
+          }
+        }
         return games;
       });
     });
@@ -117,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: FutureBuilder<User?>(
           future: _db.getCurrentUser(),
@@ -130,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 await _getCityName();
               },
               child: ListView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [
                   const SizedBox(height: 20),
                   _buildHeader(currentUser),
@@ -139,7 +152,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 32),
                   const Text(
                     'Available Games Nearby',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildSearchBar(),
@@ -257,20 +274,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHeader(User? user) {
+    final name = user?.name ?? "Baller";
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.location_on, color: Color(0xFF2A52BE)),
-            const SizedBox(width: 8),
             Text(
-              _currentCity,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.grey[800],
+              "Hello, $name 👋",
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.5,
               ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, color: Color(0xFF2A52BE), size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  _currentCity,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -285,12 +318,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: const Color(0xFF2A52BE), width: 2),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                BoxShadow(
+                  color: const Color(0xFF2A52BE).withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: CircleAvatar(
+              radius: 22,
               backgroundColor: const Color(0xFF2A52BE),
               backgroundImage: (user?.photoPath != null)
                   ? FileImage(File(user!.photoPath!))
@@ -310,37 +348,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2A52BE), Color(0xFF1E3A9F)],
+          colors: [Color(0xFF2A52BE), Color(0xFF3B82F6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2A52BE).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF2A52BE).withOpacity(0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Create a Game',
+              const Text(
+                'Host a Match',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 19,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
+                  letterSpacing: -0.3,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
-                'Find players for your match',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                'Find players for your court today',
+                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
               ),
             ],
           ),
@@ -348,13 +387,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF2A52BE),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             onPressed: () async {
               final result = await showModalBottomSheet<bool>(
                 context: context,
+                useRootNavigator: true,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (context) => const CreateGamePop(),
@@ -363,7 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _refreshGames();
               }
             },
-            child: const Text('Create'),
+            child: const Text('Host', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

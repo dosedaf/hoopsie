@@ -21,6 +21,7 @@ class User {
   final Position position;
   final int skillLevel;
   final String? photoPath;
+  final String role; // 'player' or 'owner'
 
   User({
     required this.id,
@@ -30,6 +31,7 @@ class User {
     required this.position,
     required this.skillLevel,
     this.photoPath,
+    this.role = 'player',
   });
 
   String get positionIndonesian {
@@ -75,6 +77,7 @@ class User {
       ),
       skillLevel: map['skill_level'] ?? 50,
       photoPath: map['photo_path'],
+      role: map['role'] ?? 'player',
     );
   }
   Map<String, dynamic> toMap() {
@@ -86,6 +89,7 @@ class User {
       'position': position.name,
       'skill_level': skillLevel,
       'photo_path': photoPath,
+      'role': role,
     };
   }
 

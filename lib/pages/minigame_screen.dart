@@ -129,20 +129,18 @@ class _MinigameScreenState extends State<MinigameScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Minigame'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Minigame',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
+
               const SizedBox(height: 24),
               Expanded(
                 child: SingleChildScrollView(
@@ -296,7 +294,13 @@ class _MinigameScreenState extends State<MinigameScreen> {
   }
 
   Widget _buildAllDoneScreen() {
-    return Center(
+    return Scaffold(
+    appBar: AppBar(
+      title: const Text('Minigame'),
+      backgroundColor: Colors.white,
+      elevation: 0,
+    ),
+    body: Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
@@ -326,6 +330,7 @@ class _MinigameScreenState extends State<MinigameScreen> {
           ],
         ),
       ),
+    )
     );
   }
 }
