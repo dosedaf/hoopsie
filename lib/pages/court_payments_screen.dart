@@ -124,7 +124,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2A52BE)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
               onPressed: () async {
                 await _db.updatePaymentStatus(
                   payment['id'],
@@ -229,7 +229,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2A52BE),
+                  backgroundColor: const Color(0xFF2563EB),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () => Navigator.pop(ctx),
@@ -271,8 +271,8 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
         bottom: _isOwner
             ? TabBar(
                 controller: _tabController,
-                indicatorColor: const Color(0xFF2A52BE),
-                labelColor: const Color(0xFF2A52BE),
+                indicatorColor: const Color(0xFF2563EB),
+                labelColor: const Color(0xFF2563EB),
                 unselectedLabelColor: Colors.grey,
                 tabs: const [
                   Tab(text: 'My Rentals (Host)'),
@@ -394,7 +394,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
                         Text('Converted Cost', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
                         Text(
                           '${(pay['converted_amount'] as num).toStringAsFixed(2)} ${pay['converted_currency']}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2A52BE)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
                         ),
                       ],
                     ),
@@ -406,7 +406,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
                   child: status == 'unpaid'
                       ? ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2A52BE),
+                            backgroundColor: const Color(0xFF2563EB),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => _processPayment(pay),
@@ -414,12 +414,12 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
                         )
                       : OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF2A52BE)),
+                            side: const BorderSide(color: Color(0xFF2563EB)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => _showInvoice(pay),
-                          icon: const Icon(Icons.receipt_long, color: Color(0xFF2A52BE), size: 18),
-                          label: const Text('View Receipt', style: TextStyle(color: Color(0xFF2A52BE))),
+                          icon: const Icon(Icons.receipt_long, color: Color(0xFF2563EB), size: 18),
+                          label: const Text('View Receipt', style: TextStyle(color: Color(0xFF2563EB))),
                         ),
                 ),
               ],
@@ -440,14 +440,14 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF2A52BE), Colors.blueAccent],
+              colors: [Color(0xFF2563EB), Colors.blueAccent],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2A52BE).withOpacity(0.3),
+                color: const Color(0xFF2563EB).withOpacity(0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
@@ -477,7 +477,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF2A52BE),
+                      foregroundColor: const Color(0xFF2563EB),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
@@ -613,7 +613,7 @@ class _CourtPaymentsScreenState extends State<CourtPaymentsScreen> with SingleTi
                                   )
                                 else if (status == 'approved')
                                   IconButton(
-                                    icon: const Icon(Icons.receipt_long, color: Color(0xFF2A52BE)),
+                                    icon: const Icon(Icons.receipt_long, color: Color(0xFF2563EB)),
                                     onPressed: () => _showInvoice(pay),
                                   ),
                               ],

@@ -17,7 +17,7 @@ class _SkillTestScreenState extends State<SkillTestScreen> {
   bool _isAnalyzing = false;
 
   final String _scenario =
-      "Down 2, Game 7, NBA Finals. 8 seconds left, no timeouts, you have the ball at the top of the key. Your best shooter (48% from three) is on the left wing but his defender is chest-to-chest — he got locked up when the defense got the scouting report. Your center is open on the right block, 68% near the rim, but zero three-point range. There's a small forward in the left corner at 38% from three whose defender has gone to sleep. And you — the point guard, 45% from three, 38 minutes in your legs — have a defender giving you a step of space, daring you to shoot. You have one dribble before the defense resets. The shot clock is off. Your team is in the bonus.  **What do you do, and why?** Three things your answer needs to cover: who gets the ball, whether you're going for the win or overtime, and what happens to your plan the moment the defense rotates.";
+      "Game 7 of the NBA Finals, 12 seconds left, your team is down by 1 point, no timeouts, you have the ball in the backcourt after a made free throw, the opposing team has been switching every screen all game and has a strong rim protector waiting in the paint, you are the point guard, what play do you run for your team and explain exactly what all 5 players do on the possession and why you chose that approach.";
 
   void _submitEvaluation() async {
     if (_answerController.text.length < 10) return;
@@ -86,7 +86,7 @@ class _SkillTestScreenState extends State<SkillTestScreen> {
                 : ElevatedButton(
                     onPressed: _submitEvaluation,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2A52BE),
+                      backgroundColor: const Color(0xFF2563EB),
                     ),
                     child: const Text(
                       "Submit to AI Coach",

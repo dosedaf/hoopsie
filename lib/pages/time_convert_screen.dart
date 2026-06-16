@@ -9,7 +9,7 @@ class TimeConvertScreen extends StatefulWidget {
 }
 
 class _TimeConvertScreenState extends State<TimeConvertScreen> {
-  static const _primary = Color(0xFF2A52BE);
+  static const _primary = Color(0xFF2563EB);
   static const _bg = Color(0xFFF8F9FA);
 
   late Timer _ticker;

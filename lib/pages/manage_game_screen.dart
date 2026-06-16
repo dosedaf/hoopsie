@@ -148,7 +148,7 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
                             '${scheduledTime.minute.toString().padLeft(2, '0')}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isPast ? Colors.red : const Color(0xFF2A52BE),
+                      color: isPast ? Colors.red : const Color(0xFF2563EB),
                     ),
                   ),
                 );
@@ -159,7 +159,7 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2A52BE),
+                    backgroundColor: const Color(0xFF2563EB),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -201,7 +201,7 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Reminder $val $selectedUnit berhasil diset!'),
-                        backgroundColor: const Color(0xFF2A52BE),
+                        backgroundColor: const Color(0xFF2563EB),
                       ),
                     );
                   },

@@ -20,7 +20,7 @@ class ToolsHubScreen extends StatelessWidget {
             title: "Court Rental & Payments",
             subtitle: "Manage court fees, earnings, & invoices",
             icon: Icons.payment,
-            color: const Color(0xFF2A52BE),
+            color: const Color(0xFF2563EB),
             page: const CourtPaymentsScreen(),
           ),
           const SizedBox(height: 16),

@@ -223,7 +223,7 @@ class _CreateGamePopState extends State<CreateGamePop> {
                     width: double.infinity,
                     child: SegmentedButton<GameType>(
                       style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: const Color(0xFF2A52BE),
+                        selectedBackgroundColor: const Color(0xFF2563EB),
                         selectedForegroundColor: Colors.white,
                       ),
                       segments: const [
@@ -269,7 +269,7 @@ class _CreateGamePopState extends State<CreateGamePop> {
                           const Icon(
                             Icons.calendar_today,
                             size: 18,
-                            color: Color(0xFF2A52BE),
+                            color: Color(0xFF2563EB),
                           ),
                           const SizedBox(width: 12),
                           Text(
@@ -310,7 +310,7 @@ class _CreateGamePopState extends State<CreateGamePop> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.payment, color: Color(0xFF2A52BE), size: 20),
+                              Icon(Icons.payment, color: Color(0xFF2563EB), size: 20),
                               SizedBox(width: 8),
                               Text(
                                 "Court Rental Fee",
@@ -363,7 +363,7 @@ class _CreateGamePopState extends State<CreateGamePop> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: Color(0xFF2A52BE),
+                                  color: Color(0xFF2563EB),
                                 ),
                               ),
                             ],
@@ -438,7 +438,7 @@ class _CreateGamePopState extends State<CreateGamePop> {
                     height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2A52BE),
+                        backgroundColor: const Color(0xFF2563EB),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -476,10 +476,10 @@ class _CreateGamePopState extends State<CreateGamePop> {
               selectedEndTime = selectedStartTime!.add(duration);
           });
         },
-        selectedColor: const Color(0xFF2A52BE).withOpacity(0.1),
-        checkmarkColor: const Color(0xFF2A52BE),
+        selectedColor: const Color(0xFF2563EB).withOpacity(0.1),
+        checkmarkColor: const Color(0xFF2563EB),
         labelStyle: TextStyle(
-          color: isSelected ? const Color(0xFF2A52BE) : Colors.black87,
+          color: isSelected ? const Color(0xFF2563EB) : Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),

@@ -96,7 +96,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFFEFF6FF),
-                        child: Icon(Icons.person_outline, color: Color(0xFF2A52BE)),
+                        child: Icon(Icons.person_outline, color: Color(0xFF2563EB)),
                       ),
                       title: Text(
                         p['name'] ?? 'Unknown Player',
@@ -112,7 +112,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                               participantUserId != _currentUserId)
                           ? ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2A52BE),
+                                backgroundColor: const Color(0xFF2563EB),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -175,7 +175,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.payment, color: Color(0xFF2A52BE)),
+                    Icon(Icons.payment, color: Color(0xFF2563EB)),
                     SizedBox(width: 8),
                     Text(
                       "Court Rental Status",
@@ -239,7 +239,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2A52BE),
+                    backgroundColor: const Color(0xFF2563EB),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {

@@ -66,9 +66,9 @@ class _ManageGameCardState extends State<ManageGameCard> {
     final bool hasReminder = _reminderTime != null;
 
     // Status-specific themes
-    final Color primaryColor = widget.isMyGame ? const Color(0xFF2A52BE) : Colors.orange[800]!;
+    final Color primaryColor = widget.isMyGame ? const Color(0xFF2563EB) : Colors.orange[800]!;
     final Color accentBgColor = widget.isMyGame ? const Color(0xFFEFF6FF) : const Color(0xFFFFF7ED);
-    final Color badgeColor = widget.isMyGame ? const Color(0xFF2A52BE) : Colors.orange[800]!;
+    final Color badgeColor = widget.isMyGame ? const Color(0xFF2563EB) : Colors.orange[800]!;
     final String statusLabel = widget.isMyGame ? "HOSTING" : "JOINED";
 
     return Container(

@@ -244,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: InputDecoration(
         hintText: 'Cari nama game, lapangan, atau host...',
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-        prefixIcon: const Icon(Icons.search, color: Color(0xFF2A52BE)),
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF2563EB)),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.close, size: 18, color: Colors.grey),
@@ -267,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2A52BE), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
         ),
       ),
     );
@@ -293,7 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, color: Color(0xFF2A52BE), size: 16),
+                const Icon(Icons.location_on_outlined, color: Color(0xFF2563EB), size: 16),
                 const SizedBox(width: 4),
                 Text(
                   _currentCity,
@@ -318,10 +318,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF2A52BE), width: 2),
+              border: Border.all(color: const Color(0xFF2563EB), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2A52BE).withOpacity(0.15),
+                  color: const Color(0xFF2563EB).withOpacity(0.15),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -329,7 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: CircleAvatar(
               radius: 22,
-              backgroundColor: const Color(0xFF2A52BE),
+              backgroundColor: const Color(0xFF2563EB),
               backgroundImage: (user?.photoPath != null)
                   ? FileImage(File(user!.photoPath!))
                   : null,
@@ -348,14 +348,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2A52BE), Color(0xFF3B82F6)],
+          colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2A52BE).withOpacity(0.25),
+            color: const Color(0xFF2563EB).withOpacity(0.25),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -386,7 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF2A52BE),
+              foregroundColor: const Color(0xFF2563EB),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(

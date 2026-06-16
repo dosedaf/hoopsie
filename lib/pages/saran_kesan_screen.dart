@@ -17,7 +17,7 @@ class SaranKesanScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF2A52BE),
+                color: Color(0xFF2563EB),
               ),
             ),
             const SizedBox(height: 12),

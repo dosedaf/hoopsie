@@ -126,9 +126,9 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF2A52BE),
+          labelColor: const Color(0xFF2563EB),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF2A52BE),
+          indicatorColor: const Color(0xFF2563EB),
           tabs: const [
             Tab(text: 'Game'),
             Tab(text: 'Leaderboard'),
@@ -179,7 +179,7 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
   Widget _buildTimerRing() {
     final progress = _timeLeft / _duration;
     final color = _timeLeft > 10
-        ? const Color(0xFF2A52BE)
+        ? const Color(0xFF2563EB)
         : _timeLeft > 5
             ? Colors.orange
             : Colors.red;
@@ -228,14 +228,14 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
       padding: const EdgeInsets.symmetric(vertical: 28),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2A52BE), Color(0xFF1E3A9F)],
+          colors: [Color(0xFF2563EB), Color(0xFF1E3A9F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2A52BE).withOpacity(0.35),
+            color: const Color(0xFF2563EB).withOpacity(0.35),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -314,7 +314,7 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
         height: 54,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: _running ? Colors.red : const Color(0xFF2A52BE),
+            backgroundColor: _running ? Colors.red : const Color(0xFF2563EB),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -384,7 +384,7 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color:
-                      isMe ? const Color(0xFF2A52BE) : Colors.grey[200]!,
+                      isMe ? const Color(0xFF2563EB) : Colors.grey[200]!,
                   width: isMe ? 1.5 : 1,
                 ),
                 boxShadow: [
@@ -417,7 +417,7 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: isMe
-                            ? const Color(0xFF2A52BE)
+                            ? const Color(0xFF2563EB)
                             : const Color(0xFF1E293B),
                       ),
                     ),
@@ -433,7 +433,7 @@ class _JumpCounterScreenState extends State<JumpCounterScreen>
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: isMe
-                              ? const Color(0xFF2A52BE)
+                              ? const Color(0xFF2563EB)
                               : const Color(0xFF1E293B),
                         ),
                       ),
