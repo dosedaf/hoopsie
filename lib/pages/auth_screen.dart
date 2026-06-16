@@ -30,6 +30,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _signPass = TextEditingController();
   Position _selectedPosition = Position.pg;
   double _skillLevel = 50;
+  String _selectedRole = 'player'; // 'player' or 'owner'
 
   @override
   void initState() {
@@ -181,6 +182,7 @@ class _AuthScreenState extends State<AuthScreen> {
       password: hashedPassword,
       position: _selectedPosition,
       skillLevel: _skillLevel.toInt(),
+      role: _selectedRole,
     );
 
     await _db.registerUser(newUser);
@@ -403,15 +405,65 @@ class _AuthScreenState extends State<AuthScreen> {
             isPassword: true,
           ),
           const SizedBox(height: 20),
-          _buildPositionDropdown(),
-          const SizedBox(height: 20),
-          Slider(
-            value: _skillLevel,
-            min: 1,
-            max: 100,
-            activeColor: primaryBlue,
-            onChanged: (val) => setState(() => _skillLevel = val),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "Account Type",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text("Player")),
+                  selected: _selectedRole == 'player',
+                  selectedColor: primaryBlue,
+                  labelStyle: TextStyle(
+                    color: _selectedRole == 'player' ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  onSelected: (selected) {
+                    if (selected) setState(() => _selectedRole = 'player');
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text("Court Owner")),
+                  selected: _selectedRole == 'owner',
+                  selectedColor: primaryBlue,
+                  labelStyle: TextStyle(
+                    color: _selectedRole == 'owner' ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  onSelected: (selected) {
+                    if (selected) setState(() => _selectedRole = 'owner');
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (_selectedRole == 'player') ...[
+            const SizedBox(height: 20),
+            _buildPositionDropdown(),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Text("Skill: ", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text(_skillLevel.toInt().toString(), style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            Slider(
+              value: _skillLevel,
+              min: 1,
+              max: 100,
+              activeColor: primaryBlue,
+              onChanged: (val) => setState(() => _skillLevel = val),
+            ),
+          ],
           const SizedBox(height: 30),
           _buildActionButton("Register", primaryBlue, _handleRegister),
           const SizedBox(height: 24),

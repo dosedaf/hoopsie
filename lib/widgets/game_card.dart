@@ -27,20 +27,40 @@ class GameCard extends StatelessWidget {
     final String timeRange =
         "${DateFormat('MMM d, HH:mm').format(game.startTime)} - ${DateFormat('HH:mm').format(game.endTime)}";
 
-    Color scoreColor = (matchScore ?? 0) >= 80 ? Colors.green : Colors.orange;
+    Color scoreColor = (matchScore ?? 0) >= 80 ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    
+    // Type-based colors
+    Color typeColor;
+    switch (game.type) {
+      case GameType.fiveOnFive:
+        typeColor = const Color(0xFF2A52BE);
+        break;
+      case GameType.threeOnThree:
+        typeColor = const Color(0xFFF97316);
+        break;
+      case GameType.oneOnOne:
+        typeColor = const Color(0xFF8B5CF6);
+        break;
+    }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border(
+          left: BorderSide(
+            color: typeColor,
+            width: 5,
+          ),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -59,15 +79,15 @@ class GameCard extends StatelessWidget {
                       child: Text(
                         game.name,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     // Match Quality Badge
-                    if (matchScore != null)
+                    if (matchScore != null) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -77,7 +97,7 @@ class GameCard extends StatelessWidget {
                           color: scoreColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: scoreColor.withOpacity(0.5),
+                            color: scoreColor.withOpacity(0.2),
                           ),
                         ),
                         child: Row(
@@ -90,13 +110,14 @@ class GameCard extends StatelessWidget {
                               style: TextStyle(
                                 color: scoreColor,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11,
+                                fontSize: 10,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 6),
+                    ],
                     // Game Type Badge (1v1, 3v3, etc)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -104,15 +125,18 @@ class GameCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        color: typeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: typeColor.withOpacity(0.2),
+                        ),
                       ),
                       child: Text(
                         game.type.displayName,
-                        style: const TextStyle(
-                          color: Colors.blue,
+                        style: TextStyle(
+                          color: typeColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 10,
                         ),
                       ),
                     ),
@@ -121,17 +145,18 @@ class GameCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey,
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 15,
+                      color: typeColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       timeRange,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF334155),
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -141,17 +166,20 @@ class GameCard extends StatelessWidget {
                   children: [
                     const Icon(
                       Icons.location_on_outlined,
-                      size: 16,
-                      color: Colors.grey,
+                      size: 15,
+                      color: Color(0xFF64748B),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      game.courtName ?? game.courtId,
-                      style: const TextStyle(color: Colors.grey),
+                    Expanded(
+                      child: Text(
+                        game.courtName ?? game.courtId,
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
-                const Divider(height: 24, thickness: 0.5),
+                const Divider(height: 24, thickness: 0.5, color: Color(0xFFE2E8F0)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -159,20 +187,20 @@ class GameCard extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor: const Color(0xFFF1F5F9),
                           child: const Icon(
-                            Icons.person,
+                            Icons.person_outline,
                             size: 14,
-                            color: Colors.grey,
+                            color: Color(0xFF64748B),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "Hosted by ${game.hostName ?? 'Unknown User'}",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w500,
+                          "Host: ${game.hostName ?? 'Unknown'}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF475569),
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -182,16 +210,16 @@ class GameCard extends StatelessWidget {
                         onPressed: onDelete,
                         icon: const Icon(
                           Icons.delete_outline,
-                          size: 18,
+                          size: 16,
                           color: Colors.redAccent,
                         ),
                         label: const Text(
                           "Cancel",
-                          style: TextStyle(color: Colors.redAccent),
+                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       )
                     else
-                      _buildJoinButton(),
+                      _buildJoinButton(typeColor),
                   ],
                 ),
               ],
@@ -202,33 +230,47 @@ class GameCard extends StatelessWidget {
     );
   }
 
-  Widget _buildJoinButton() {
+  Widget _buildJoinButton(Color activeColor) {
     if (game.currentUserStatus == 'pending') {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange.withOpacity(0.5),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFFDE68A)),
         ),
-        child: const Text("Requested"),
+        child: const Text(
+          "Requested",
+          style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12),
+        ),
       );
     } else if (game.currentUserStatus == 'approved') {
-      return ElevatedButton(
-        onPressed: onLeave,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.withOpacity(0.5),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFECFDF5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFA7F3D0)),
         ),
-        child: const Text("Joined"),
+        child: const Text(
+          "Joined",
+          style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 12),
+        ),
       );
     } else {
       return ElevatedButton(
         onPressed: onJoin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
+          backgroundColor: activeColor,
           foregroundColor: Colors.white,
           elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: const Text("Join Game"),
+        child: const Text(
+          "Join Game",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
       );
     }
   }

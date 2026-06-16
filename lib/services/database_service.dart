@@ -40,7 +40,7 @@ class DatabaseService {
     log("DEBUG: Database is located at: $path");
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
   CREATE TABLE users (
@@ -50,7 +50,8 @@ class DatabaseService {
     password TEXT,
     position TEXT,
     skill_level INTEGER,
-    photo_path TEXT
+    photo_path TEXT,
+    role TEXT DEFAULT 'player'
   )
 ''');
         await db.execute('''
@@ -65,7 +66,29 @@ class DatabaseService {
     type TEXT,
     size TEXT,
     court_count INTEGER,
-    surface TEXT
+    surface TEXT,
+    price REAL DEFAULT 0.0,
+    currency TEXT DEFAULT 'IDR',
+    owner_id TEXT,
+    bank_name TEXT,
+    bank_account TEXT
+  )
+''');
+        await db.execute('''
+  CREATE TABLE court_payments (
+    id TEXT PRIMARY KEY,
+    game_id TEXT NOT NULL,
+    court_id TEXT NOT NULL,
+    host_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL,
+    converted_amount REAL NOT NULL,
+    converted_currency TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    paid_at TEXT,
+    payment_method TEXT
   )
 ''');
         await db.execute('''
@@ -213,6 +236,48 @@ class DatabaseService {
           });
         }
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute('ALTER TABLE courts ADD COLUMN price REAL DEFAULT 0.0');
+          } catch(e) {}
+          try {
+            await db.execute("ALTER TABLE courts ADD COLUMN currency TEXT DEFAULT 'IDR'");
+          } catch(e) {}
+          try {
+            await db.execute('ALTER TABLE courts ADD COLUMN owner_id TEXT');
+          } catch(e) {}
+          try {
+            await db.execute('ALTER TABLE courts ADD COLUMN bank_name TEXT');
+          } catch(e) {}
+          try {
+            await db.execute('ALTER TABLE courts ADD COLUMN bank_account TEXT');
+          } catch(e) {}
+          
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS court_payments (
+              id TEXT PRIMARY KEY,
+              game_id TEXT NOT NULL,
+              court_id TEXT NOT NULL,
+              host_id TEXT NOT NULL,
+              owner_id TEXT NOT NULL,
+              amount REAL NOT NULL,
+              currency TEXT NOT NULL,
+              converted_amount REAL NOT NULL,
+              converted_currency TEXT NOT NULL,
+              status TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              paid_at TEXT,
+              payment_method TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 3) {
+          try {
+            await db.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'player'");
+          } catch(e) {}
+        }
+      },
     );
   }
 
@@ -261,6 +326,11 @@ class DatabaseService {
         size: maps[i]['size'] ?? "Full",
         courtCount: maps[i]['court_count'] ?? 1,
         surface: maps[i]['surface'] ?? "Concrete",
+        price: (maps[i]['price'] as num?)?.toDouble() ?? 0.0,
+        currency: maps[i]['currency'] ?? "IDR",
+        ownerId: maps[i]['owner_id']?.toString(),
+        bankName: maps[i]['bank_name']?.toString(),
+        bankAccount: maps[i]['bank_account']?.toString(),
       );
     });
   }
@@ -275,7 +345,7 @@ class DatabaseService {
     return List.generate(maps.length, (i) => Game.fromMap(maps[i]));
   }
 
-  Future<void> insertGame(Game game) async {
+  Future<void> insertGame(Game game, {String? paymentCurrency, double? convertedAmount}) async {
     final db = await database;
 
     await db.transaction((txn) async {
@@ -296,6 +366,41 @@ class DatabaseService {
         'user_id': game.hostId,
         'status': 'approved',
       });
+
+      // Fetch court details to check if payment is needed
+      final List<Map<String, dynamic>> courtMaps = await txn.query(
+        'courts',
+        where: 'id = ?',
+        whereArgs: [game.courtId],
+      );
+
+      if (courtMaps.isNotEmpty) {
+        final double courtPrice = (courtMaps.first['price'] as num?)?.toDouble() ?? 0.0;
+        final String courtCurrency = courtMaps.first['currency'] as String? ?? 'IDR';
+        final String? ownerId = courtMaps.first['owner_id']?.toString();
+
+        if (courtPrice > 0 && ownerId != null && ownerId.isNotEmpty && ownerId != game.hostId) {
+          final durationHours = game.endTime.difference(game.startTime).inMinutes / 60.0;
+          final double totalAmount = courtPrice * durationHours;
+
+          final String finalCurrency = paymentCurrency ?? courtCurrency;
+          final double finalConverted = convertedAmount ?? totalAmount;
+
+          await txn.insert('court_payments', {
+            'id': 'pay_${game.id}',
+            'game_id': game.id,
+            'court_id': game.courtId,
+            'host_id': game.hostId,
+            'owner_id': ownerId,
+            'amount': totalAmount,
+            'currency': courtCurrency,
+            'converted_amount': finalConverted,
+            'converted_currency': finalCurrency,
+            'status': 'unpaid',
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        }
+      }
     });
   }
 
@@ -581,8 +686,12 @@ class DatabaseService {
     String size,
     int courtCount,
     String surface,
-    String? photoPath,
-  ) async {
+    String? photoPath, {
+    double price = 0.0,
+    String currency = 'IDR',
+    String? bankName,
+    String? bankAccount,
+  }) async {
     final db = await database;
     await db.insert('courts', {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -596,6 +705,11 @@ class DatabaseService {
       'size': size,
       'court_count': courtCount,
       'surface': surface,
+      'price': price,
+      'currency': currency,
+      'owner_id': currentUserId,
+      'bank_name': bankName,
+      'bank_account': bankAccount,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -692,6 +806,93 @@ class DatabaseService {
       ORDER BY js.score DESC
       LIMIT 10
     ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getPaymentsForHost(String hostId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT 
+        p.*, 
+        c.name as court_name, 
+        c.bank_name, 
+        c.bank_account,
+        g.name as game_name,
+        u.name as owner_name
+      FROM court_payments p
+      JOIN courts c ON p.court_id = c.id
+      JOIN games g ON p.game_id = g.id
+      JOIN users u ON p.owner_id = u.id
+      WHERE p.host_id = ?
+      ORDER BY p.created_at DESC
+    ''', [hostId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getPaymentsForOwner(String ownerId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT 
+        p.*, 
+        c.name as court_name, 
+        g.name as game_name,
+        u.name as host_name
+      FROM court_payments p
+      JOIN courts c ON p.court_id = c.id
+      JOIN games g ON p.game_id = g.id
+      JOIN users u ON p.host_id = u.id
+      WHERE p.owner_id = ?
+      ORDER BY p.created_at DESC
+    ''', [ownerId]);
+  }
+
+  Future<Map<String, dynamic>?> getPaymentForGame(String gameId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT 
+        p.*, 
+        c.name as court_name, 
+        c.bank_name, 
+        c.bank_account,
+        u.name as owner_name
+      FROM court_payments p
+      JOIN courts c ON p.court_id = c.id
+      JOIN users u ON p.owner_id = u.id
+      WHERE p.game_id = ?
+    ''', [gameId]);
+    if (maps.isEmpty) return null;
+    return maps.first;
+  }
+
+  Future<void> updatePaymentStatus(
+    String paymentId, 
+    String status, {
+    String? paidAt, 
+    String? paymentMethod,
+  }) async {
+    final db = await database;
+    final Map<String, dynamic> values = {
+      'status': status,
+    };
+    if (paidAt != null) values['paid_at'] = paidAt;
+    if (paymentMethod != null) values['payment_method'] = paymentMethod;
+
+    await db.update(
+      'court_payments',
+      values,
+      where: 'id = ?',
+      whereArgs: [paymentId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPaymentsForCourt(String courtId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT p.*, g.name as game_name, u.name as host_name
+      FROM court_payments p
+      JOIN games g ON p.game_id = g.id
+      JOIN users u ON p.host_id = u.id
+      WHERE p.court_id = ?
+      ORDER BY p.created_at DESC
+    ''', [courtId]);
   }
 
 }
