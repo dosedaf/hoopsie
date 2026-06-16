@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geodesy/geodesy.dart' as geo;
@@ -29,6 +30,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
   String _selectedSize = 'Full';
   String _selectedSurface = 'Concrete';
   late Future<List<dynamic>> _mapDataFuture;
+  String _mapFilter = 'all'; // 'all', 'games', 'courts'
 
   @override
   void initState() {
@@ -129,7 +131,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final Color primaryBlue = const Color(0xFF2A52BE);
+          final Color primaryBlue = const Color(0xFF2563EB);
           
           return Container(
             padding: EdgeInsets.only(
@@ -198,6 +200,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                   TextField(
                     controller: courtCountController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
                       labelText: "Number of Available Courts",
                       prefixIcon: const Icon(Icons.grid_4x4),
@@ -218,6 +221,9 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                         child: TextField(
                           controller: priceController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
+                          ],
                           decoration: InputDecoration(
                             labelText: "Price / Hour",
                             prefixIcon: const Icon(Icons.monetization_on_outlined),
@@ -229,22 +235,50 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: selectedCurrency,
-                          decoration: InputDecoration(
-                            labelText: "Currency",
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          items: ['IDR', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'SGD']
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) {
-                              setDialogState(() => selectedCurrency = v);
-                            }
-                          },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "CURRENCY",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: ['IDR', 'USD', 'EUR', 'SGD']
+                                  .map((c) => ChoiceChip(
+                                        label: Text(c),
+                                        selected: selectedCurrency == c,
+                                        onSelected: (bool selected) {
+                                          if (selected) {
+                                            setDialogState(() => selectedCurrency = c);
+                                          }
+                                        },
+                                        selectedColor: const Color(0xFF2563EB),
+                                        backgroundColor: const Color(0xFFF1F5F9),
+                                        labelStyle: TextStyle(
+                                          color: selectedCurrency == c ? Colors.white : const Color(0xFF475569),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                          side: BorderSide(
+                                            color: selectedCurrency == c ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        elevation: 0,
+                                        pressElevation: 0,
+                                      ))
+                                  .toList(),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -264,6 +298,8 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: bankAccountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
                       labelText: "Bank Account / Account Number",
                       hintText: "e.g., 1234567890",
@@ -296,10 +332,18 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onPressed: () async {
+                            final String courtName = nameController.text.trim();
                             final count = int.tryParse(courtCountController.text) ?? 0;
-                            if (nameController.text.trim().isEmpty) {
+                            
+                            if (courtName.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Please enter a court name!'), backgroundColor: Colors.redAccent),
+                              );
+                              return;
+                            }
+                            if (courtName.length < 3) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Court name must be at least 3 characters!'), backgroundColor: Colors.redAccent),
                               );
                               return;
                             }
@@ -310,14 +354,41 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                               return;
                             }
 
+                            final String priceText = priceController.text.trim();
+                            double price = 0.0;
+                            if (priceText.isNotEmpty) {
+                              final parsedPrice = double.tryParse(priceText);
+                              if (parsedPrice == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a valid price number!'), backgroundColor: Colors.redAccent),
+                                );
+                                return;
+                              }
+                              price = parsedPrice;
+                            }
+
+                            final String bankName = bankNameController.text.trim();
+                            final String bankAccount = bankAccountController.text.trim();
+                            if ((bankName.isNotEmpty && bankAccount.isEmpty) || (bankAccount.isNotEmpty && bankName.isEmpty)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please provide both Bank Name and Account Number!'), backgroundColor: Colors.redAccent),
+                              );
+                              return;
+                            }
+                            if (bankAccount.isNotEmpty && bankAccount.length < 5) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Bank account must be at least 5 digits long!'), backgroundColor: Colors.redAccent),
+                              );
+                              return;
+                            }
+
                             String? savedPath;
                             if (_tempFile != null) {
                               savedPath = await _saveImagePermanently(_tempFile!.path);
                             }
 
-                            final price = double.tryParse(priceController.text) ?? 0.0;
                             await _db.saveCourtExtended(
-                              nameController.text.trim(),
+                              courtName,
                               point.latitude,
                               point.longitude,
                               "${opening.hour.toString().padLeft(2, '0')}:${opening.minute.toString().padLeft(2, '0')}",
@@ -329,8 +400,8 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                               savedPath,
                               price: price,
                               currency: selectedCurrency,
-                              bankName: bankNameController.text.trim(),
-                              bankAccount: bankAccountController.text.trim(),
+                              bankName: bankName,
+                              bankAccount: bankAccount,
                             );
 
                             setState(() {
@@ -357,10 +428,38 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     );
   }
 
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _mapFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _mapFilter = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Nearby Courts")),
       body: _isLoadingLocation
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<List<dynamic>>(
@@ -376,126 +475,250 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                 final List<Game> games = snapshot.data![0];
                 final List<Court> allCourts = snapshot.data![1];
 
-                return FlutterMap(
-                  options: MapOptions(
-                    initialCenter: geo.LatLng(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
-                    ),
-                    initialZoom: 14,
-                    onLongPress: (_, point) {
-                      final user = AuthManager().currentUser;
-                      if (user != null && user.role == 'owner') {
-                        _showAddCourtDialog(point);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Only Court Owners can add new courts!"),
-                            backgroundColor: Colors.redAccent,
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                final Set<String> courtsWithGames = games.map((g) => g.courtId).toSet();
+
+                // Filter courts based on _mapFilter
+                final filteredCourts = allCourts.where((c) {
+                  if (_mapFilter == 'games') return false;
+                  if (_mapFilter == 'courts') return true;
+                  // 'all' -> only show courts that don't have games to prevent duplicate overlapping markers
+                  return !courtsWithGames.contains(c.id);
+                }).toList();
+
+                // Filter games based on _mapFilter
+                final filteredGames = _mapFilter == 'courts' ? <Game>[] : games;
+
+                final user = AuthManager().currentUser;
+                final bool isOwner = user?.role == 'owner';
+
+                return Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.ta_tes.hoopsie',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        // Current User Marker
-                        Marker(
-                          point: geo.LatLng(
-                            _currentPosition!.latitude,
-                            _currentPosition!.longitude,
-                          ),
-                          width: 45,
-                          height: 45,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.4),
-                                  blurRadius: 10,
-                                  spreadRadius: 3,
-                                ),
-                              ],
-                              border: Border.all(color: Colors.blue, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.my_location,
-                              color: Colors.blue,
-                              size: 20,
-                            ),
-                          ),
+                    FlutterMap(
+                      options: MapOptions(
+                        initialCenter: geo.LatLng(
+                          _currentPosition!.latitude,
+                          _currentPosition!.longitude,
                         ),
-                        ...allCourts.map(
-                          (c) => Marker(
-                            point: geo.LatLng(c.lat, c.lng),
-                            width: 45,
-                            height: 45,
-                            child: GestureDetector(
-                              onTap: () => _showCourtOnlyPreview(c),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
+                        initialZoom: 14,
+                        onLongPress: (_, point) {
+                          if (isOwner) {
+                            _showAddCourtDialog(point);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Only Court Owners can add new courts!"),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.ta_tes.hoopsie',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            // Current User Marker - Big, glowing minimalist style
+                            Marker(
+                              point: geo.LatLng(
+                                _currentPosition!.latitude,
+                                _currentPosition!.longitude,
+                              ),
+                              width: 60,
+                              height: 60,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: const Color(0xFF2563EB).withOpacity(0.15),
                                     ),
-                                  ],
-                                  border: Border.all(color: const Color(0xFF2A52BE), width: 2.5),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.stadium,
-                                    color: Color(0xFF2A52BE),
-                                    size: 20,
+                                  ),
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF2563EB).withOpacity(0.3),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                      border: Border.all(color: const Color(0xFF2563EB), width: 3),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.navigation,
+                                        color: Color(0xFF2563EB),
+                                        size: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Court markers - bright vibrant electric royal blue style
+                            ...filteredCourts.map(
+                              (c) => Marker(
+                                point: geo.LatLng(c.lat, c.lng),
+                                width: 40,
+                                height: 40,
+                                child: GestureDetector(
+                                  onTap: () => _showCourtOnlyPreview(c),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.15),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                      border: Border.all(color: const Color(0xFF2563EB), width: 2.5),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.stadium,
+                                        color: Color(0xFF2563EB),
+                                        size: 20,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        ...games.map(
-                          (g) => Marker(
-                            point: geo.LatLng(g.courtLat, g.courtLng),
-                            width: 45,
-                            height: 45,
-                            child: GestureDetector(
-                              onTap: () => _showGamePreview(g),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.orange[850],
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.orange.withOpacity(0.4),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
+                            // Game markers - big, vibrant orange basketball style
+                            ...filteredGames.map(
+                              (g) => Marker(
+                                point: geo.LatLng(g.courtLat, g.courtLng),
+                                width: 48,
+                                height: 48,
+                                child: GestureDetector(
+                                  onTap: () => _showGamePreview(g),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEA580C),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFEA580C).withOpacity(0.35),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                      border: Border.all(color: Colors.white, width: 2),
                                     ),
-                                  ],
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.sports_basketball,
-                                    color: Colors.white,
-                                    size: 22,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.sports_basketball,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
+                    ),
+                    // Floating top card overlay
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 16,
+                      left: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.96),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Explore Map",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      Text(
+                                        isOwner
+                                            ? "Long press map to add new court"
+                                            : "Find courts & active matches near you",
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isOwner)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.2)),
+                                    ),
+                                    child: const Text(
+                                      "OWNER",
+                                      style: TextStyle(
+                                        color: Color(0xFF2563EB),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildFilterChip('all', '📍 All'),
+                                  const SizedBox(width: 8),
+                                  _buildFilterChip('games', '🏀 Games Only'),
+                                  const SizedBox(width: 8),
+                                  _buildFilterChip('courts', '🏟️ Courts Only'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -558,37 +781,125 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
     );
   }
 
+  Widget _buildChoiceChip<T>({
+    required String label,
+    required T value,
+    required T selectedValue,
+    required ValueChanged<T> onSelected,
+  }) {
+    final bool isSelected = value == selectedValue;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        if (selected) {
+          onSelected(value);
+        }
+      },
+      selectedColor: const Color(0xFF2563EB),
+      backgroundColor: const Color(0xFFF1F5F9),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : const Color(0xFF475569),
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 0,
+      pressElevation: 0,
+    );
+  }
+
+  Widget _buildSelectionRow({
+    required String title,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
   Widget _buildDropdowns(StateSetter setDialogState) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<String>(
-          value: _selectedType,
-          items: [
-            'Indoor',
-            'Outdoor',
-          ].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-          onChanged: (v) => setDialogState(() => _selectedType = v!),
-          decoration: const InputDecoration(labelText: "Type"),
+        _buildSelectionRow(
+          title: "COURT TYPE",
+          child: Row(
+            children: [
+              _buildChoiceChip(
+                label: "Indoor",
+                value: "Indoor",
+                selectedValue: _selectedType,
+                onSelected: (val) => setDialogState(() => _selectedType = val),
+              ),
+              const SizedBox(width: 8),
+              _buildChoiceChip(
+                label: "Outdoor",
+                value: "Outdoor",
+                selectedValue: _selectedType,
+                onSelected: (val) => setDialogState(() => _selectedType = val),
+              ),
+            ],
+          ),
         ),
-        DropdownButtonFormField<String>(
-          value: _selectedSurface,
-          items: [
-            'Wood',
-            'Concrete',
-            'Rubber',
-            'Asphalt',
-          ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-          onChanged: (v) => setDialogState(() => _selectedSurface = v!),
-          decoration: const InputDecoration(labelText: "Surface"),
+        _buildSelectionRow(
+          title: "COURT SIZE",
+          child: Row(
+            children: [
+              _buildChoiceChip(
+                label: "Full Court",
+                value: "Full",
+                selectedValue: _selectedSize,
+                onSelected: (val) => setDialogState(() => _selectedSize = val),
+              ),
+              const SizedBox(width: 8),
+              _buildChoiceChip(
+                label: "Half Court",
+                value: "Half",
+                selectedValue: _selectedSize,
+                onSelected: (val) => setDialogState(() => _selectedSize = val),
+              ),
+            ],
+          ),
         ),
-        DropdownButtonFormField<String>(
-          value: _selectedSize,
-          items: [
-            'Full',
-            'Half',
-          ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-          onChanged: (v) => setDialogState(() => _selectedSize = v!),
-          decoration: const InputDecoration(labelText: "Court Size"),
+        _buildSelectionRow(
+          title: "SURFACE TYPE",
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              'Wood',
+              'Concrete',
+              'Rubber',
+              'Asphalt',
+            ].map((s) => _buildChoiceChip(
+              label: s,
+              value: s,
+              selectedValue: _selectedSurface,
+              onSelected: (val) => setDialogState(() => _selectedSurface = val),
+            )).toList(),
+          ),
         ),
       ],
     );
@@ -715,7 +1026,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                       const Divider(height: 24),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.person, color: Color(0xFF2A52BE)),
+                        leading: const Icon(Icons.person, color: Color(0xFF2563EB)),
                         title: const Text("Court Operator / Owner"),
                         subtitle: Text(ownerDisplayName, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
@@ -818,7 +1129,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                                     children: [
                                       Text(
                                         "${(p['converted_amount'] as num).toStringAsFixed(2)} ${p['converted_currency']}",
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2A52BE)),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB)),
                                       ),
                                       const SizedBox(height: 4),
                                       Container(
@@ -846,7 +1157,7 @@ class _MapExploreScreenState extends State<MapExploreScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2A52BE),
+                              backgroundColor: const Color(0xFF2563EB),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: () {

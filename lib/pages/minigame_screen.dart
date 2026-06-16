@@ -105,7 +105,7 @@ class _MinigameScreenState extends State<MinigameScreen> {
   }
 
   Color _labelTextColor(int i) {
-    if (!_answered) return const Color(0xFF2A52BE);
+    if (!_answered) return const Color(0xFF2563EB);
     if (i == q.correctIndex || i == _selected) return Colors.white;
     return const Color(0xFF94A3B8);
   }
@@ -168,14 +168,14 @@ class _MinigameScreenState extends State<MinigameScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2A52BE), Color(0xFF1E3A9F)],
+          colors: [Color(0xFF2563EB), Color(0xFF1E3A9F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2A52BE).withOpacity(0.35),
+            color: const Color(0xFF2563EB).withOpacity(0.35),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -277,7 +277,7 @@ class _MinigameScreenState extends State<MinigameScreen> {
   Widget _buildNextButton() {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF2A52BE),
+        backgroundColor: const Color(0xFF2563EB),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(vertical: 15),
       ),
@@ -309,7 +309,7 @@ class _MinigameScreenState extends State<MinigameScreen> {
             const Icon(
               Icons.emoji_events_rounded,
               size: 56,
-              color: Color(0xFF2A52BE),
+              color: Color(0xFF2563EB),
             ),
             const SizedBox(height: 24),
             Text(

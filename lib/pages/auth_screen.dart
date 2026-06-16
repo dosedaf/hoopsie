@@ -5,6 +5,7 @@ import '../services/auth_manager.dart';
 import '../services/biometric_service.dart';
 import '../models/user.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -109,7 +110,7 @@ class _AuthScreenState extends State<AuthScreen> {
               (user) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFF2A52BE),
+                  backgroundColor: const Color(0xFF2563EB),
                   child: Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                     style: const TextStyle(color: Colors.white),
@@ -143,7 +144,18 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final user = await _db.loginUser(_loginUser.text.trim(), _loginPass.text);
+    final String username = _loginUser.text.trim();
+    final String password = _loginPass.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both username and password')),
+      );
+      return;
+    }
+
+    final user = await _db.loginUser(username, password);
     if (user == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,30 +167,51 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _handleRegister() async {
-    final exist = await _db.getUserByUsername(_signUser.text.trim());
-    if(exist != null){
+    final String name = _signName.text.trim();
+    final String username = _signUser.text.trim();
+    final String password = _signPass.text;
+
+    if (name.isEmpty || username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Username sudah digunakan'),
-        ),
-      );
-      return;
-    }
-    
-    if (_signName.text.trim().isEmpty || _signUser.text.trim().isEmpty || _signPass.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Semua field harus diisi'),
-        ),
+        const SnackBar(content: Text('Semua field harus diisi')),
       );
       return;
     }
 
-    final hashedPassword = User.hashPassword(_signPass.text);
+    if (name.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Full name must be at least 2 characters')),
+      );
+      return;
+    }
+
+    if (username.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username must be at least 3 characters')),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+
+    final exist = await _db.getUserByUsername(username);
+    if (exist != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username sudah digunakan')),
+      );
+      return;
+    }
+
+    final hashedPassword = User.hashPassword(password);
     final newUser = User(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _signName.text,
-      username: _signUser.text,
+      name: name,
+      username: username,
       password: hashedPassword,
       position: _selectedPosition,
       skillLevel: _skillLevel.toInt(),
@@ -207,96 +240,136 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryBlue = const Color(0xFF326CFA);
-    final Color darkBgColor = const Color(0xFF1E283F);
-    final double containerHeight = MediaQuery.of(context).size.height * 0.7;
+    final Color primaryBlue = const Color(0xFF2563EB);
+    final double containerHeight = MediaQuery.of(context).size.height * 0.70;
 
     return Scaffold(
-      backgroundColor: darkBgColor,
-      body: Stack(
-        children: [
-          Positioned(
-            top: 60,
-            left: 24,
-            right: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.sports_basketball,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  _isLoginSelected ? "Welcome\nBack" : "Create your\naccount",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isLoginSelected
-                      ? "Sign in to run some play!"
-                      : "Sign up to start ballin",
-                  style: TextStyle(color: Colors.white.withOpacity(0.7)),
-                ),
-              ],
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: containerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+        ),
+        child: Stack(
+          children: [
+            // Subtle basketball court lines in background
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.05,
+                child: CustomPaint(
+                  painter: _CourtLinesPainter(),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 24,
+              right: 24,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildToggle(primaryBlue),
-                  const SizedBox(height: 32),
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildLoginForm(primaryBlue),
-                        _buildSignupForm(primaryBlue),
-                      ],
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.sports_basketball,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _isLoginSelected ? "Welcome\nBack" : "Create your\naccount",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _isLoginSelected
+                        ? "Sign in to run some play!"
+                        : "Sign up to start ballin",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: containerHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(36),
+                    topRight: Radius.circular(36),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                      offset: const Offset(0, -10),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Column(
+                  children: [
+                    // Subtle grab handle
+                    Container(
+                      width: 48,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildToggle(primaryBlue),
+                    const SizedBox(height: 28),
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildLoginForm(primaryBlue),
+                          _buildSignupForm(primaryBlue),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildToggle(Color primaryBlue) {
     return Container(
-      height: 50,
+      height: 54,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F9),
-        borderRadius: BorderRadius.circular(25),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(27),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
       ),
+      padding: const EdgeInsets.all(4),
       child: Row(
         children: [
           Expanded(
@@ -328,17 +401,28 @@ class _AuthScreenState extends State<AuthScreen> {
   ) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(25),
+          color: active ? primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(23),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            color: active ? primaryBlue : Colors.grey,
+            color: active ? Colors.white : const Color(0xFF64748B),
             fontWeight: FontWeight.bold,
+            fontSize: 14,
           ),
         ),
       ),
@@ -353,6 +437,9 @@ class _AuthScreenState extends State<AuthScreen> {
             controller: _loginUser,
             hint: "Username",
             icon: Icons.person_outline,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z0-9_\.]")),
+            ],
           ),
           const SizedBox(height: 16),
           _buildInputField(
@@ -360,6 +447,9 @@ class _AuthScreenState extends State<AuthScreen> {
             hint: "Password",
             icon: Icons.lock_outline,
             isPassword: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r"\s")),
+            ],
           ),
           const SizedBox(height: 40),
           _buildActionButton("Login", primaryBlue, _handleLogin),
@@ -370,7 +460,7 @@ class _AuthScreenState extends State<AuthScreen> {
               icon: Icon(Icons.fingerprint, color: primaryBlue),
               label: Text(
                 "Login with Biometrics",
-                style: TextStyle(color: primaryBlue),
+                style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -396,6 +486,9 @@ class _AuthScreenState extends State<AuthScreen> {
             controller: _signUser,
             hint: "Username",
             icon: Icons.person_outline,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z0-9_\.]")),
+            ],
           ),
           const SizedBox(height: 16),
           _buildInputField(
@@ -403,13 +496,16 @@ class _AuthScreenState extends State<AuthScreen> {
             hint: "Password",
             icon: Icons.lock_outline,
             isPassword: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r"\s")),
+            ],
           ),
           const SizedBox(height: 20),
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
               "Account Type",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF64748B)),
             ),
           ),
           const SizedBox(height: 8),
@@ -421,12 +517,21 @@ class _AuthScreenState extends State<AuthScreen> {
                   selected: _selectedRole == 'player',
                   selectedColor: primaryBlue,
                   labelStyle: TextStyle(
-                    color: _selectedRole == 'player' ? Colors.white : Colors.black87,
+                    color: _selectedRole == 'player' ? Colors.white : const Color(0xFF475569),
                     fontWeight: FontWeight.bold,
                   ),
                   onSelected: (selected) {
                     if (selected) setState(() => _selectedRole = 'player');
                   },
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  side: BorderSide(
+                    color: _selectedRole == 'player' ? Colors.transparent : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -436,12 +541,21 @@ class _AuthScreenState extends State<AuthScreen> {
                   selected: _selectedRole == 'owner',
                   selectedColor: primaryBlue,
                   labelStyle: TextStyle(
-                    color: _selectedRole == 'owner' ? Colors.white : Colors.black87,
+                    color: _selectedRole == 'owner' ? Colors.white : const Color(0xFF475569),
                     fontWeight: FontWeight.bold,
                   ),
                   onSelected: (selected) {
                     if (selected) setState(() => _selectedRole = 'owner');
                   },
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  side: BorderSide(
+                    color: _selectedRole == 'owner' ? Colors.transparent : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
               ),
             ],
@@ -452,7 +566,7 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 20),
             Row(
               children: [
-                const Text("Skill: ", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                const Text("Skill: ", style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
                 Text(_skillLevel.toInt().toString(), style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold)),
               ],
             ),
@@ -461,6 +575,7 @@ class _AuthScreenState extends State<AuthScreen> {
               min: 1,
               max: 100,
               activeColor: primaryBlue,
+              inactiveColor: const Color(0xFFE2E8F0),
               onChanged: (val) => setState(() => _skillLevel = val),
             ),
           ],
@@ -483,31 +598,56 @@ class _AuthScreenState extends State<AuthScreen> {
       controller: controller,
       obscureText: isPassword,
       inputFormatters: inputFormatters,
+      style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.grey, size: 20),
+        prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
         hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
         filled: true,
-        fillColor: const Color(0xFFF1F4F9),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        fillColor: const Color(0xFFF8FAFC),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
         ),
       ),
     );
   }
 
   Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 55,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: [color, color.withRed((color.red + 30).clamp(0, 255))],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(28),
           ),
-          elevation: 0,
         ),
         onPressed: onPressed,
         child: Text(
@@ -516,6 +656,7 @@ class _AuthScreenState extends State<AuthScreen> {
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -524,15 +665,20 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _buildPositionDropdown() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F9),
-        borderRadius: BorderRadius.circular(15),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Position>(
           value: _selectedPosition,
           isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 15, fontWeight: FontWeight.w500),
           onChanged: (val) => setState(() => _selectedPosition = val!),
           items: Position.values
               .map((p) => DropdownMenuItem(value: p, child: Text(p.fullName)))
@@ -541,4 +687,57 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
+}
+
+class _CourtLinesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // Draw center circle line
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.16), 50, paint);
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.16), 4, paint);
+
+    // Draw half-court line
+    canvas.drawLine(
+      Offset(0, size.height * 0.16),
+      Offset(size.width, size.height * 0.16),
+      paint,
+    );
+
+    // Draw three-point arc
+    // Basket at X = width/2, Y = 25
+    final basketOffset = Offset(size.width / 2, 25);
+    canvas.drawArc(
+      Rect.fromCircle(center: basketOffset, radius: 150),
+      0,
+      math.pi,
+      false,
+      paint,
+    );
+
+    // Draw the key (restricted area)
+    final keyRect = Rect.fromLTRB(
+      size.width / 2 - 40,
+      0,
+      size.width / 2 + 40,
+      90,
+    );
+    canvas.drawRect(keyRect, paint);
+
+    // Draw free throw circle
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(size.width / 2, 90), radius: 40),
+      0,
+      math.pi,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

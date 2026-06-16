@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/database_service.dart';
 import '../models/user.dart';
 import 'dart:io';
@@ -10,6 +11,7 @@ import 'saran_kesan_screen.dart';
 import 'court_payments_screen.dart';
 import 'jump_counter_screen.dart';
 import 'minigame_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -97,6 +99,191 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickProfilePicture(User user) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final updatedUser = User(
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        password: user.password,
+        position: user.position,
+        skillLevel: user.skillLevel,
+        photoPath: image.path,
+        role: user.role,
+      );
+
+      await _db.updateUser(updatedUser);
+      setState(() {
+        _userFuture = _db.getCurrentUser();
+      });
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+
+  void _showEditProfileSheet(User user) {
+    final nameController = TextEditingController(text: user.name);
+    Position selectedPosition = user.position;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Edit Profile',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Full Name',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameController,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s\.]")),
+                ],
+                decoration: InputDecoration(
+                  hintText: 'Enter your name',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                  ),
+                ),
+              ),
+              if (user.role == 'player') ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Primary Position',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<Position>(
+                      value: selectedPosition,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() {
+                            selectedPosition = val;
+                          });
+                        }
+                      },
+                      items: Position.values
+                          .map((p) => DropdownMenuItem(value: p, child: Text(p.fullName)))
+                          .toList(),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Name cannot be empty')),
+                      );
+                      return;
+                    }
+                    if (name.length < 2) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Name must be at least 2 characters')),
+                      );
+                      return;
+                    }
+                    Navigator.pop(ctx);
+
+                    final updatedUser = User(
+                      id: user.id,
+                      name: nameController.text.trim(),
+                      username: user.username,
+                      password: user.password,
+                      position: selectedPosition,
+                      skillLevel: user.skillLevel,
+                      photoPath: user.photoPath,
+                      role: user.role,
+                    );
+
+                    await _db.updateUser(updatedUser);
+                    setState(() {
+                      _userFuture = _db.getCurrentUser();
+                    });
+
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profile updated successfully!')),
+                    );
+                  },
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,7 +340,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -164,21 +351,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Stack(
             children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF2A52BE), width: 2),
-                ),
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.grey[100],
-                  backgroundImage: user.photoPath != null
-                      ? FileImage(File(user.photoPath!))
-                      : null,
-                  child: user.photoPath == null
-                      ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                      : null,
+              GestureDetector(
+                onTap: () => _pickProfilePicture(user),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF2563EB), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey[100],
+                      backgroundImage: user.photoPath != null
+                          ? FileImage(File(user.photoPath!))
+                          : null,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (user.photoPath == null)
+                            const Icon(Icons.person, size: 40, color: Colors.grey),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
               if (!isOwner)
@@ -226,19 +434,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: isOwner ? const Color(0xFFEFF6FF) : user.tierColor.withOpacity(0.1),
+                        color: isOwner ? const Color(0xFFEFF6FF) : user.tierColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isOwner ? const Color(0xFF2A52BE).withOpacity(0.2) : user.tierColor.withOpacity(0.2),
+                          color: isOwner ? const Color(0xFF2563EB).withValues(alpha: 0.2) : user.tierColor.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Text(
                         isOwner ? "COURT OWNER" : user.skillTier.toUpperCase(),
                         style: TextStyle(
-                          color: isOwner ? const Color(0xFF2A52BE) : user.tierColor,
+                          color: isOwner ? const Color(0xFF2563EB) : user.tierColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 10,
                           letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _showEditProfileSheet(user),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 10, color: Color(0xFF475569)),
+                              SizedBox(width: 4),
+                              Text(
+                                "EDIT",
+                                style: TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -348,7 +585,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2A52BE),
+                  color: Color(0xFF2563EB),
                 ),
               ),
             ],
@@ -357,7 +594,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           LinearProgressIndicator(
             value: user.skillLevel / 100.0,
             backgroundColor: const Color(0xFFF1F5F9),
-            color: const Color(0xFF2A52BE),
+            color: const Color(0xFF2563EB),
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
           ),
@@ -369,7 +606,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF2A52BE), size: 20),
+        Icon(icon, color: const Color(0xFF2563EB), size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -432,7 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(
             leading: const CircleAvatar(
               backgroundColor: Color(0xFFEFF6FF),
-              child: Icon(Icons.payment_outlined, color: Color(0xFF2A52BE), size: 20),
+              child: Icon(Icons.payment_outlined, color: Color(0xFF2563EB), size: 20),
             ),
             title: const Text(
               "Court Rentals & Payments",
@@ -522,7 +759,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 backgroundColor: const Color(0xFFF1F5F9),
                 child: Icon(
                   Icons.fingerprint,
-                  color: _biometricEnabled ? const Color(0xFF2A52BE) : Colors.grey,
+                  color: _biometricEnabled ? const Color(0xFF2563EB) : Colors.grey,
                   size: 20,
                 ),
               ),
@@ -534,12 +771,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _biometricEnabled ? 'Aktif' : 'Nonaktif',
                 style: TextStyle(
                   fontSize: 12,
-                  color: _biometricEnabled ? const Color(0xFF2A52BE) : Colors.grey,
+                  color: _biometricEnabled ? const Color(0xFF2563EB) : Colors.grey,
                 ),
               ),
               trailing: Switch(
                 value: _biometricEnabled,
-                activeColor: const Color(0xFF2A52BE),
+                activeColor: const Color(0xFF2563EB),
                 onChanged: (_) => _toggleBiometric(),
               ),
             ),

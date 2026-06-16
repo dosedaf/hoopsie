@@ -10,7 +10,7 @@ class CurrencyConvertScreen extends StatefulWidget {
 }
 
 class _CurrencyConvertScreenState extends State<CurrencyConvertScreen> {
-  static const _primary = Color(0xFF2A52BE);
+  static const _primary = Color(0xFF2563EB);
   static const _bg = Color(0xFFF8F9FA);
 
   final _amountController = TextEditingController();

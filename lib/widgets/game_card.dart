@@ -33,7 +33,7 @@ class GameCard extends StatelessWidget {
     Color typeColor;
     switch (game.type) {
       case GameType.fiveOnFive:
-        typeColor = const Color(0xFF2A52BE);
+        typeColor = const Color(0xFF2563EB);
         break;
       case GameType.threeOnThree:
         typeColor = const Color(0xFFF97316);
