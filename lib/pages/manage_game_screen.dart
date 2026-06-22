@@ -192,7 +192,10 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
                     );
 
                     final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('reminder_${userId}_${game.id}', scheduledTime.toIso8601String());
+                    await prefs.setString(
+                      reminderPrefKey(userId, game.id),
+                      scheduledTime.toIso8601String(),
+                    );
 
                     result = scheduledTime;
                     Navigator.pop(ctx);

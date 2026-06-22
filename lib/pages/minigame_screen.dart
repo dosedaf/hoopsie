@@ -190,10 +190,18 @@ class _MinigameScreenState extends State<MinigameScreen> {
                 top: Radius.circular(20),
               ),
               child: AspectRatio(
-                aspectRatio: 16 / 9,
+                aspectRatio: 4 / 3,
                 child: q.imageUrl!.startsWith('http')
-                    ? Image.network(q.imageUrl!, fit: BoxFit.cover)
-                    : Image.asset(q.imageUrl!, fit: BoxFit.cover),
+                    ? Image.network(
+                        q.imageUrl!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                      )
+                    : Image.asset(
+                        q.imageUrl!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                      ),
               ),
             ),
           Padding(

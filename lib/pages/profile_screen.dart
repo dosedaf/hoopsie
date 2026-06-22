@@ -11,6 +11,8 @@ import 'saran_kesan_screen.dart';
 import 'court_payments_screen.dart';
 import 'jump_counter_screen.dart';
 import 'minigame_screen.dart';
+import 'time_convert_screen.dart';
+import 'step_counter_screen.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -711,6 +713,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             const Divider(height: 8, indent: 56, color: Color(0xFFF1F5F9)),
+
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFEFF6FF),
+                child: Icon(Icons.access_time, color: Color(0xFF2563EB), size: 20),
+              ),
+              title: const Text(
+                "NBA Match Time",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155), fontSize: 14),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TimeConvertScreen()),
+                );
+              },
+            ),
+            const Divider(height: 8, indent: 56, color: Color(0xFFF1F5F9)),
           ],
 
           ListTile(
@@ -748,6 +769,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MinigameScreen()),
+              );
+            },
+          ),
+          const Divider(height: 8, indent: 56, color: Color(0xFFF1F5F9)),
+
+          ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFECFDF5),
+              child: Icon(Icons.directions_walk, color: Color(0xFF059669), size: 20),
+            ),
+            title: const Text(
+              "Step Counter",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155), fontSize: 14),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StepCounterScreen()),
               );
             },
           ),

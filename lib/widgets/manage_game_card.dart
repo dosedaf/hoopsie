@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ta_tes/services/auth_manager.dart';
 import '../models/game.dart';
+import '../services/notification_service.dart';
 
 class ManageGameCard extends StatefulWidget {
   final Game game;
@@ -35,14 +37,19 @@ class _ManageGameCardState extends State<ManageGameCard> {
   }
 
   Future<void> _loadReminderStatus() async {
+    final userId = AuthManager().currentUserId;
+    if (userId == null) return;
+
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('reminder_${widget.game.id}');
+    final key = reminderPrefKey(userId, widget.game.id);
+    final saved = prefs.getString(key);
     if (saved != null) {
       final dt = DateTime.tryParse(saved);
       if (dt != null && dt.isAfter(DateTime.now())) {
-        setState(() => _reminderTime = dt);
+        if (mounted) setState(() => _reminderTime = dt);
       } else {
-        await prefs.remove('reminder_${widget.game.id}');
+        await prefs.remove(key);
+        if (mounted) setState(() => _reminderTime = null);
       }
     }
   }

@@ -29,6 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _signName = TextEditingController();
   final _signUser = TextEditingController();
   final _signPass = TextEditingController();
+  final _signPassConfirm = TextEditingController();
   Position _selectedPosition = Position.pg;
   double _skillLevel = 50;
   String _selectedRole = 'player'; // 'player' or 'owner'
@@ -47,6 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _signName.dispose();
     _signUser.dispose();
     _signPass.dispose();
+    _signPassConfirm.dispose();
     super.dispose();
   }
 
@@ -170,10 +172,18 @@ class _AuthScreenState extends State<AuthScreen> {
     final String name = _signName.text.trim();
     final String username = _signUser.text.trim();
     final String password = _signPass.text;
+    final String passwordConfirm = _signPassConfirm.text;
 
-    if (name.isEmpty || username.isEmpty || password.isEmpty) {
+    if (name.isEmpty || username.isEmpty || password.isEmpty || passwordConfirm.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Semua field harus diisi')),
+      );
+      return;
+    }
+
+    if (password != passwordConfirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Konfirmasi password tidak cocok')),
       );
       return;
     }
@@ -240,10 +250,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryBlue = const Color(0xFF2563EB);
-    final double containerHeight = MediaQuery.of(context).size.height * 0.70;
+    final Color primaryBlue = const Color.fromARGB(255, 38, 101, 236);
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -263,97 +275,101 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
             ),
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 24,
-              right: 24,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: topPadding + 16,
+                    left: 24,
+                    right: 24,
+                    bottom: 24,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.sports_basketball,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _isLoginSelected ? "Welcome\nBack" : "Create your\naccount",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _isLoginSelected
+                            ? "Sign in to run some play!"
+                            : "Sign up to start ballin",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.sports_basketball,
                       color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _isLoginSelected ? "Welcome\nBack" : "Create your\naccount",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _isLoginSelected
-                        ? "Sign in to run some play!"
-                        : "Sign up to start ballin",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: containerHeight,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(36),
-                    topRight: Radius.circular(36),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                      offset: const Offset(0, -10),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                child: Column(
-                  children: [
-                    // Subtle grab handle
-                    Container(
-                      width: 48,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(10),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(36),
+                        topRight: Radius.circular(36),
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                          offset: const Offset(0, -10),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    _buildToggle(primaryBlue),
-                    const SizedBox(height: 28),
-                    Expanded(
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildLoginForm(primaryBlue),
-                          _buildSignupForm(primaryBlue),
-                        ],
-                      ),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Column(
+                      children: [
+                        // Subtle grab handle
+                        Container(
+                          width: 48,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildToggle(primaryBlue),
+                        const SizedBox(height: 28),
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _buildLoginForm(primaryBlue),
+                              _buildSignupForm(primaryBlue),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -494,6 +510,16 @@ class _AuthScreenState extends State<AuthScreen> {
           _buildInputField(
             controller: _signPass,
             hint: "Password",
+            icon: Icons.lock_outline,
+            isPassword: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r"\s")),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInputField(
+            controller: _signPassConfirm,
+            hint: "Confirm Password",
             icon: Icons.lock_outline,
             isPassword: true,
             inputFormatters: [
